@@ -14,6 +14,9 @@
 }
 html,body{height:100%;margin:0;overflow:hidden;background:#cfe0e6;color:var(--ink);font-family:var(--body)}
 #scene{position:fixed;inset:0;touch-action:none}
+#warm{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(255,236,205,0) 55%,rgba(120,72,30,.22) 100%);mix-blend-mode:multiply}
+#toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);padding:8px 16px;font-weight:700;font-size:14px;transition:opacity .4s}
+#toast.off{opacity:0}
 canvas{display:block}
 [hidden]{display:none!important}
 .panel{background:var(--paper);border:1.5px solid var(--ink);box-shadow:3px 3px 0 rgba(43,36,32,.85)}
@@ -79,6 +82,8 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 </style>
 
 <div id="scene"></div>
+<div id="warm"></div>
+<div id="toast" class="panel off" aria-live="polite"></div>
 
 <div id="brand" class="panel">
   <div class="k">TNSSH · Since 1914</div>
@@ -91,6 +96,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   <div class="tools">
     <button id="btnList" aria-pressed="false">地點清單</button>
     <button id="btnLabel" aria-pressed="true">名牌</button>
+    <button id="btnSound" aria-pressed="false">聲音</button>
     <button id="btnHelp">玩法</button>
   </div>
 </div>
@@ -114,14 +120,15 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 
 <div id="intro">
   <div class="panel">
-    <div class="k">校園導覽 · 第十四版</div>
+    <div class="k">校園導覽 · 第十七版</div>
     <h2>從公園北路大門，<br>走進南二中。</h2>
     <p>你會站在大門口，面向校園。走近任何一棟建築，下方就會出現它的介紹；走過的地點會蓋上章，右上的清單和小地圖都可以直接傳送過去。</p>
     <ul>
       <li>電腦：<kbd>W A S D</kbd> 或方向鍵走路，<kbd>Shift</kbd> 跑步；拖曳畫面轉視角，滾輪拉近拉遠</li>
       <li>手機／平板：左下搖桿走路，在畫面上拖曳轉視角</li>
       <li>配置照學校的校區平面圖排列，建築是簡化的模型</li>
-      <li>校園裡有穿制服、運動服的同學在走動、跑步、打球</li>
+      <li>校園裡有穿制服、運動服、黑色班 T 的同學在走動、跑步、打球；仔細找找，還有幾個意想不到的人</li>
+      <li>東邊圍牆外的舊鐵道，偶爾會有火車經過；右上角可以打開聲音</li>
       <li>你會站在公園北路的大門外，往前走就進校園了</li>
     </ul>
     <button id="go">開始走走</button>
@@ -149,15 +156,26 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
+renderer.outputEncoding = T.sRGBEncoding;
+renderer.toneMapping = T.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.88;
+renderer.physicallyCorrectLights = false;
 host.appendChild(renderer.domElement);
 
 const scene = new T.Scene();
-scene.background = new T.Color(0xcfe3ea);
-scene.fog = new T.Fog(0xcfe3ea, 170, 430);
+scene.background = new T.Color(0xeed8bf).convertSRGBToLinear();
+scene.fog = new T.Fog(new T.Color(0xe6c9a8).convertSRGBToLinear(), 230, 620);
 const camera = new T.PerspectiveCamera(55, innerWidth/innerHeight, 0.5, 1000);
 
-scene.add(new T.HemisphereLight(0xf5f1e6, 0x8b9a78, 0.75));
-const sun = new T.DirectionalLight(0xfff1d6, 0.85);
+const hemi = new T.HemisphereLight(new T.Color(0xfff0dc).convertSRGBToLinear(), new T.Color(0x6e5f48).convertSRGBToLinear(), 0.6); scene.add(hemi);
+const fill = new T.DirectionalLight(new T.Color(0xbcd2ec).convertSRGBToLinear(), 0.18); fill.position.set(120,80,-140); scene.add(fill);
+const sun = new T.DirectionalLight(new T.Color(0xffcf96).convertSRGBToLinear(), 1.65);
+// 天空：上方淡藍、地平線暖橘的漸層天球
+const skyDome = new T.Mesh(new T.SphereGeometry(900,32,16), new T.ShaderMaterial({ side:T.BackSide, depthWrite:false, fog:false,
+  uniforms:{ top:{value:new T.Color(0x5f97d0).convertSRGBToLinear()}, mid:{value:new T.Color(0xa9c9e2).convertSRGBToLinear()}, bot:{value:new T.Color(0xeec39a).convertSRGBToLinear()} },
+  vertexShader:'varying vec3 vP; void main(){ vP=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader:'uniform vec3 top; uniform vec3 mid; uniform vec3 bot; varying vec3 vP; void main(){ float h=vP.y; vec3 c = h>0.18 ? mix(mid,top,smoothstep(0.18,0.8,h)) : mix(bot,mid,smoothstep(-0.05,0.18,h)); gl_FragColor=vec4(c,1.0); }' }));
+skyDome.userData.keepColor = true; scene.add(skyDome);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048,2048);
 const sc = sun.shadow.camera; sc.left=-150; sc.right=150; sc.top=150; sc.bottom=-150; sc.near=10; sc.far=460;
@@ -185,7 +203,7 @@ function polyMesh(pxPts,color,y,hole){
 }
 
 /* ---------- campus outline (from the plan) ---------- */
-const CAMPUS_PX = [[185,48],[632,42],[728,60],[728,622],[200,622],[116,412],[90,335],[42,298]];
+const CAMPUS_PX = [[185,48],[632,42],[728,60],[728,592],[698,622],[200,622],[116,412],[90,335],[42,298]];
 const CAMPUS = CAMPUS_PX.map(p=>[X(p[0]),Z(p[1])]);
 function inPoly(x,z){
   let c=false;
@@ -203,11 +221,13 @@ planePx(-400,628,1300,690,0x55524f,0.01);                     // 公園北路
 for(let px=-380; px<1300; px+=24) planePx(px,657,px+12,659,0xf3ecd8,0.03);
 planePx(738,-300,790,628,0x55524f,0.01);                      // 北門路二段
 for(let py=-280; py<620; py+=24) planePx(763,py,765,py+12,0xf3ecd8,0.03);
-planePx(728,-300,738,628,0xc5bcad,0.02);                      // 人行道
+planePx(728,-300,738,628,0xc5bcad,0.02);                      // 人行道（校門側）
+planePx(790,-300,794,628,0xc5bcad,0.02);                      // 人行道（對面）
+planePx(794,-400,818,900,0x8d8478,0.015);                     // 舊鐵道道碴（北門路對面）
 planePx(-400,622,1300,628,0xc5bcad,0.02);
 planePx(-400,690,1300,1300,0x7f9f66,0.0);                     // 臺南公園
 // city blocks across 北門路
-[[800,40,860,110,10],[870,40,960,120,16],[800,130,850,220,8],[860,140,940,215,12],[805,240,880,320,14],[890,235,960,330,9],[800,345,855,430,11],[870,350,960,440,18],[800,455,880,540,10],[890,460,960,545,13],[800,560,870,615,8],[885,560,960,615,12],
+[[822,40,882,110,10],[892,40,982,120,16],[822,130,872,220,8],[882,140,962,215,12],[827,240,902,320,14],[912,235,982,330,9],[822,345,877,430,11],[892,350,982,440,18],[822,455,902,540,10],[912,460,982,545,13],[822,560,892,615,8],[907,560,982,615,12],
  [0,-80,120,30,9],[-120,-40,0,60,12],
  [190,0,232,36,9],[240,4,280,34,12],[288,-2,330,32,7],[338,2,382,32,10],[390,-6,436,30,8],[444,0,488,28,13],[496,-4,540,24,9],[548,-8,600,22,11],[608,-12,650,18,8]].forEach(b=>{
   const r=R(b[0],b[1],b[2],b[3]);
@@ -220,7 +240,8 @@ polyMesh(CAMPUS_PX,0xdcd6ca,0.0,true);                                         /
 polyMesh([[185,48],[178,70],[168,282],[70,282],[42,298]],0x7fa36a,0.02);  // 西北綠帶
 planePx(186,44,632,64,0x7fa36a,0.02);                                     // 北側綠帶
 planePx(192,47,470,60,0xb4a69a,0.025);                                    // 圍牆內側紅磚步道
-polyMesh([[452,392],[728,392],[728,606],[452,606]],0x7fa36a,0.02,true);                                   // 行政大樓四周綠地
+polyMesh([[452,392],[728,392],[728,592],[714,606],[452,606]],0x7fa36a,0.02,true);
+polyMesh([[728,592],[738,592],[738,628],[698,628],[698,622]],0xc5bcad,0.022);   // 東南角斜切外的人行道                                   // 行政大樓四周綠地
 planePx(286,386,406,430,0x6f9a5c,0.03);                                   // 勤學樓北側綠地
 planePx(168,178,268,284,0x7fa36a,0.02);                                   // 泳池周圍
 planePx(515,560,642,618,0xd9d1c2,0.035);                                  // 紅樓前廣場
@@ -433,7 +454,7 @@ function makeLabel(text, x, y, z){
   g.fillRect(2,2,c.width-4,c.height-4); g.strokeRect(2,2,c.width-4,c.height-4);
   g.fillStyle = '#2b2420'; g.textBaseline = 'middle'; g.textAlign = 'center';
   g.fillText(text, c.width/2, c.height/2+2);
-  const tex = new T.CanvasTexture(c); tex.minFilter = T.LinearFilter;
+  const tex = new T.CanvasTexture(c); tex.minFilter = T.LinearFilter; tex.encoding = T.sRGBEncoding;
   const sp = new T.Sprite(new T.SpriteMaterial({map:tex, depthWrite:false, transparent:true}));
   sp.scale.set(c.width*0.085, c.height*0.085, 1); sp.position.set(x,y,z); sp.renderOrder = 5;
   scene.add(sp); labels.push(sp); return sp;
@@ -451,7 +472,9 @@ function wallSeg(a,b){
 }
 for(let i=0;i<CAMPUS_PX.length;i++){
   const a=CAMPUS_PX[i], b=CAMPUS_PX[(i+1)%CAMPUS_PX.length];
-  if(a[0]===728 && b[0]===200){ wallSeg(a,[452,622]); wallSeg([398,622],b); } else wallSeg(a,b);
+  if(a[0]===698 && b[0]===200){ wallSeg(a,[452,622]); wallSeg([398,622],b); }
+  else if(a[0]===728 && b[0]===698){ /* 東南角斜切：舊校門 */ }
+  else wallSeg(a,b);
 }
 // 大門：石砌門柱、校名牆、伸縮門、傳達室與 LED 看板
 const STONE_DRAW=(g,w,h)=>{ g.fillStyle='#7d7568'; g.fillRect(0,0,w,h); let sd=7; const rnd=()=>{ sd=(sd*9301+49297)%233280; return sd/233280; };
@@ -934,6 +957,27 @@ function rectWindow(x,y,z,w,h,rotY=0){
     for(let i=0;i<3;i++){ const st=shadowy(new T.Mesh(new T.BoxGeometry(5,0.3*(3-i),0.9),mat(0xc9c5bd))); st.position.set(r.x+3.5,0.15*(3-i),fz+0.45+i*0.9); scene.add(st); }
     footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#d9938c'});
   })();
+  // 仁愛樓前棟南側：紅磚廣場、台階、枯木雕塑
+  (function(){
+    const r=R(142,386,244,418);
+    const pv=new T.Mesh(new T.PlaneGeometry(r.w,r.d),texMat('renaiPlaza',r.w/5,r.d/5,64,64,(g)=>brickCanvas(g,64,64,'#9c5a4c','#7f4538',8,16)));
+    pv.rotation.x=-Math.PI/2; pv.position.set(r.x,0.035,r.z); pv.receiveShadow=true; scene.add(pv);
+    const st=mat(0xa9a59e);
+    for(let i=0;i<3;i++){ const s2=R(176,386,262,389); const m=shadowy(new T.Mesh(new T.BoxGeometry(s2.w,0.2*(3-i),0.7),st)); m.position.set(s2.x,0.1*(3-i),Z(386)+0.35+i*0.7); scene.add(m); }
+    // 枯木：在橢圓形石砌花台裡
+    const tx=X(200), tz=Z(402);
+    const ring=shadowy(new T.Mesh(new T.CylinderGeometry(1,1,0.6,32,1,true),new T.MeshStandardMaterial({color:0xb9b5ad,side:T.DoubleSide}))); ring.scale.set(4.2,1,2.6); ring.position.set(tx,0.3,tz); scene.add(ring);
+    const rim=new T.Mesh(new T.TorusGeometry(1,0.08,6,32),mat(0xc9c5bd)); rim.rotation.x=Math.PI/2; rim.scale.set(4.2,2.6,1); rim.position.set(tx,0.6,tz); scene.add(rim);
+    const soil=new T.Mesh(new T.CircleGeometry(1,32),mat(0x8a6e4e)); soil.rotation.x=-Math.PI/2; soil.scale.set(4.1,2.5,1); soil.position.set(tx,0.45,tz); scene.add(soil);
+    const wood=mat(0x9a8a72,{roughness:1});
+    let y=0.4, x=tx, z=tz;
+    [[1.1,0.95,2.2,0.08],[0.95,0.8,2.0,-0.12],[0.8,0.65,1.8,0.15],[0.65,0.45,1.6,-0.1],[0.45,0.3,1.0,0.2]].forEach(([r1,r2,h,lean],k)=>{
+      const seg=shadowy(new T.Mesh(new T.CylinderGeometry(r2,r1,h,9),wood)); seg.position.set(x,y+h/2,z); seg.rotation.z=lean; seg.rotation.y=k; scene.add(seg);
+      x+=Math.sin(-lean)*h*0.5; y+=h*0.95; });
+    const hole=new T.Mesh(new T.CircleGeometry(0.25,8),mat(0x2a2420)); hole.position.set(tx,4.3,tz+0.7); scene.add(hole);
+    addCollider(tx,tz,8.4,5.2);
+    footprints.push({x:tx,z:tz,w:8.4,d:5.2,c:'#b9b5ad',round:true});
+  })();
   // 紫卿亭：八角涼亭
   (function(){
     const x=X(163), z=Z(402), stone=mat(0xb8a296);
@@ -1346,7 +1390,7 @@ function rectWindow(x,y,z,w,h,rotY=0){
 })();
 // 紅樓前廣場：紅磚步道圍著的噴泉，中央黑色圓環雕塑點綴金色
 (function(){
-  const cx=X(575), cz=Z(590);
+  const cx=X(603), cz=Z(592);
   const pave=new T.Mesh(new T.CircleGeometry(13,48),texMat('paving2',4,4,64,64,(g)=>brickCanvas(g,64,64,'#a9877c','#8d7066',8,16))); pave.rotation.x=-Math.PI/2; pave.position.set(cx,0.05,cz); scene.add(pave);
   const grass=new T.Mesh(new T.CircleGeometry(7.4,40),mat(0x6f9a58)); grass.rotation.x=-Math.PI/2; grass.position.set(cx,0.06,cz); scene.add(grass);
   const stone=mat(0x8f8b85);
@@ -1366,7 +1410,7 @@ function rectWindow(x,y,z,w,h,rotY=0){
 })();
 // 止於至善：貼著公園北路圍牆，字面朝校園；紅柱、綠色琉璃瓦飛簷、米色匾額、下方木條
 (function(){
-  const x=X(536), z=Z(614), W=9.4;
+  const x=X(568), z=Z(614), W=9.4;
   const base=shadowy(new T.Mesh(new T.BoxGeometry(W+1,0.35,1.2),mat(0xb8735a))); base.position.set(x,0.18,z); scene.add(base);
   const back=shadowy(new T.Mesh(new T.BoxGeometry(W-0.4,3.2,0.4),mat(0xe9e4d8))); back.position.set(x,2,z+0.1); scene.add(back);
   const t=drawTex(768,192,g=>{ g.fillStyle='#e8dfc6'; g.fillRect(0,0,768,192); g.strokeStyle='#b7a982'; g.lineWidth=8; g.strokeRect(6,6,756,180); g.fillStyle='#3a2e24'; g.font='900 110px "Noto Serif TC", serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('善 至 於 止',384,100); });
@@ -1395,10 +1439,10 @@ function tree(px,py,s=1,banyan=false,collide=true){
   const tr = shadowy(new T.Mesh(new T.CylinderGeometry(0.35*s*k,0.5*s*k,3.2*s,7),trunkM)); tr.position.y=1.6*s; g.add(tr);
   const lm = leafMs[(Math.abs(px*7+py*3)|0)%3];
   if(banyan){
-    [[0,5.2,0,4.2],[2.6,4.6,1,3],[-2.4,4.8,-0.8,3.2],[0.6,5,-2.6,3],[-0.6,4.6,2.6,2.8]].forEach(b=>{ const l=shadowy(new T.Mesh(new T.IcosahedronGeometry(b[3]*s,1),lm)); l.position.set(b[0]*s,b[1]*s,b[2]*s); g.add(l); });
+    [[0,5.2,0,4.2],[2.6,4.6,1,3],[-2.4,4.8,-0.8,3.2],[0.6,5,-2.6,3],[-0.6,4.6,2.6,2.8]].forEach(b=>{ const l=shadowy(new T.Mesh(new T.IcosahedronGeometry(b[3]*s,2),lm)); l.position.set(b[0]*s,b[1]*s,b[2]*s); g.add(l); });
   } else {
-    const l = shadowy(new T.Mesh(new T.IcosahedronGeometry(2.2*s,1),lm)); l.position.y = 4.4*s; g.add(l);
-    const l2 = shadowy(new T.Mesh(new T.IcosahedronGeometry(1.5*s,1),lm)); l2.position.set(0.8*s,5.6*s,0.3*s); g.add(l2);
+    const l = shadowy(new T.Mesh(new T.IcosahedronGeometry(2.2*s,2),lm)); l.position.y = 4.4*s; g.add(l);
+    const l2 = shadowy(new T.Mesh(new T.IcosahedronGeometry(1.5*s,2),lm)); l2.position.set(0.8*s,5.6*s,0.3*s); g.add(l2);
   }
   g.position.set(x,0,z); g.rotation.y = (px*13+py)%6; scene.add(g);
   if(collide) addCollider(x,z,1.1*s*k,1.1*s*k);
@@ -1494,8 +1538,8 @@ planePx(563,384,587,430,0xbdb6aa,0.036);   // 中央大道：北穿堂往北到�
     [-1,1].forEach(s2=>{ const l=new T.Mesh(new T.CylinderGeometry(0.32,0.32,0.5,10),mat(0xb9b4ab)); l.position.set(X(px)+s2*1,0.25,Z(py)-0.6); scene.add(l); }); addCollider(X(px),Z(py)-0.6,2.4,0.7); }
   for(let px=x1+6; px<x2-2; px+=11){ const c=shadowy(new T.Mesh(new T.ConeGeometry(0.8,2.4,10),mat(0x3f6b37))); c.position.set(X(px),1.2,Z(427)); scene.add(c); }
 });
-for(let y=440;y<=596;y+=24) tree(714,y,0.75);
-[[492,600],[650,600],[690,600],[700,570]].forEach(p=>tree(p[0],p[1],0.8));
+for(let y=440;y<=536;y+=24) tree(714,y,0.75);
+[[492,600]].forEach(p=>tree(p[0],p[1],0.8));
 // 勤學樓北側綠地
 [[298,398],[326,396],[356,400],[390,398],[302,422],[396,420]].forEach(p=>tree(p[0],p[1],0.85));
 // 勤學樓前庭園（灌木）
@@ -1504,20 +1548,50 @@ for(let x=292;x<=384;x+=22) tree(x,532,0.75);
 // 西側零星
 [[214,486],[214,520],[222,600],[160,450],[276,180],[276,214],[276,248],[96,320],[196,318],[256,320],[226,340]].forEach(p=>tree(p[0],p[1],0.85));
 tree(192,306,1.1,true);
-palm(512,612,11); palm(600,614,12); palm(560,616,10);
-// 噴泉東南邊的暗紅色小屋（白色簷口）
+palm(540,612,11); palm(640,614,12); palm(596,617,10);
+
+// 臺南公園：校門對面。矮牆鐵欄、北側入口牌樓、步道、燕潭與湖心亭、老榕樹、路燈
 (function(){
-  const r=R(634,598,664,614);
-  const dr=mat(0x6e2a2c), white=mat(0xf1eee8);
-  const body=shadowy(new T.Mesh(new T.BoxGeometry(r.w,3.4,r.d),dr)); body.position.set(r.x,1.7,r.z); scene.add(body); occluders.push(body); addCollider(r.x,r.z,r.w,r.d);
-  const roof=shadowy(new T.Mesh(new T.BoxGeometry(r.w+1.2,0.5,r.d+1.2),white)); roof.position.set(r.x,3.65,r.z); scene.add(roof);
-  const plinth=new T.Mesh(new T.BoxGeometry(r.w+0.1,0.4,r.d+0.1),white); plinth.position.set(r.x,0.2,r.z); scene.add(plinth);
-  [-4,0,4].forEach(dx=>{ const f=new T.Mesh(new T.PlaneGeometry(1.8,1.4),white); f.position.set(r.x+dx,2,r.z-r.d/2-0.03); f.rotation.y=Math.PI; scene.add(f);
-    const g=new T.Mesh(new T.PlaneGeometry(1.5,1.1),mat(0x3e4a50)); g.position.set(r.x+dx,2,r.z-r.d/2-0.04); g.rotation.y=Math.PI; scene.add(g); });
-  footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#6e2a2c'});
+  const fence=mat(0x2b2b2b), brick=mat(0xa8564f), stoneW=mat(0xd6cfc2);
+  for(let px=-380; px<1290; px+=20){ if(px>390 && px<460) continue; const r=R(px,692,px+20,695);
+    const w=shadowy(new T.Mesh(new T.BoxGeometry(r.w,0.8,r.d),stoneW)); w.position.set(r.x,0.4,r.z); scene.add(w);
+    const f=new T.Mesh(new T.BoxGeometry(r.w,1.2,0.08),fence); f.position.set(r.x,1.4,r.z); scene.add(f);
+    const pl=shadowy(new T.Mesh(new T.BoxGeometry(0.9,2.2,0.9),brick)); pl.position.set(X(px),1.1,r.z); scene.add(pl); }
+  // 入口牌樓
+  const gx=X(425), gz=Z(694);
+  [-1,1].forEach(s2=>{ const p=shadowy(new T.Mesh(new T.BoxGeometry(1.4,6,1.4),mat(0xa8262a))); p.position.set(gx+s2*7,3,gz); scene.add(p); });
+  const lin=shadowy(new T.Mesh(new T.BoxGeometry(16,1.4,1.2),mat(0xe9e2d0))); lin.position.set(gx,6.4,gz); scene.add(lin);
+  const roof=shadowy(new T.Mesh(new T.BoxGeometry(18,0.5,2.6),mat(0x3f7a4a))); roof.position.set(gx,7.4,gz); scene.add(roof);
+  const ridge=new T.Mesh(new T.BoxGeometry(17,0.5,0.6),mat(0x2f5f3a)); ridge.position.set(gx,7.9,gz); scene.add(ridge);
+  const pT=textTex('臺南公園',512,96,64,'#e9e2d0','#5a1f1f'); lateTextures.push(pT);
+  const sgn=new T.Mesh(new T.PlaneGeometry(8,1.3),new T.MeshBasicMaterial({map:pT})); sgn.position.set(gx,6.4,gz-0.62); sgn.rotation.y=Math.PI; scene.add(sgn);
+  // 步道
+  const path=mat(0xcbbca6);
+  planePx(410,695,440,900,0xcbbca6,0.02);
+  planePx(-300,760,1200,772,0xcbbca6,0.02);
+  // 燕潭＋湖心亭＋曲橋
+  const pc=[X(640),Z(860)];
+  const pond=new T.Mesh(new T.CircleGeometry(1,48),mat(0x4f7f78,{roughness:0.15,metalness:0.1})); pond.rotation.x=-Math.PI/2; pond.scale.set(70,44,1); pond.position.set(pc[0],0.05,pc[1]); scene.add(pond);
+  const bank=new T.Mesh(new T.RingGeometry(1,1.04,48),stoneW); bank.rotation.x=-Math.PI/2; bank.scale.set(70,44,1); bank.position.set(pc[0],0.07,pc[1]); scene.add(bank);
+  const isl=new T.Mesh(new T.CylinderGeometry(7,7.5,0.8,24),stoneW); isl.position.set(pc[0],0.4,pc[1]); scene.add(isl);
+  for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; const c=shadowy(new T.Mesh(new T.CylinderGeometry(0.22,0.22,3.4,10),mat(0xa8262a))); c.position.set(pc[0]+Math.cos(a)*4,2.5,pc[1]+Math.sin(a)*4); scene.add(c); }
+  const pr=shadowy(new T.Mesh(new T.ConeGeometry(6.2,3.4,8),mat(0x5a8a4c))); pr.position.set(pc[0],5.9,pc[1]); pr.rotation.y=Math.PI/8; scene.add(pr);
+  const pe=new T.Mesh(new T.CylinderGeometry(6.4,6.4,0.3,8),mat(0x3d6b3e)); pe.position.set(pc[0],4.3,pc[1]); pe.rotation.y=Math.PI/8; scene.add(pe);
+  const fin=new T.Mesh(new T.SphereGeometry(0.4,10,8),mat(0xc9a63b,{metalness:0.4})); fin.position.set(pc[0],7.8,pc[1]); scene.add(fin);
+  let bx=pc[0]-7, bz=pc[1];
+  [[-14,0],[-8,-6],[-14,0],[-10,6]].forEach(([dx,dz])=>{ const nx=bx+dx, nz=bz+dz; const L=Math.hypot(dx,dz);
+    const br=shadowy(new T.Mesh(new T.BoxGeometry(L,0.4,2.2),mat(0xd9cdb6))); br.position.set((bx+nx)/2,0.9,(bz+nz)/2); br.rotation.y=-Math.atan2(dz,dx); scene.add(br);
+    const rl=new T.Mesh(new T.BoxGeometry(L,0.6,0.15),mat(0xa8262a)); rl.position.set((bx+nx)/2,1.4,(bz+nz)/2); rl.rotation.y=-Math.atan2(dz,dx); scene.add(rl);
+    bx=nx; bz=nz; });
+  // 路燈
+  for(let px=-260; px<1200; px+=60){ const x=X(px), z=Z(766);
+    const pole=new T.Mesh(new T.CylinderGeometry(0.1,0.14,4.2,8),mat(0x2b2b2b)); pole.position.set(x,2.1,z); scene.add(pole);
+    const lamp=new T.Mesh(new T.SphereGeometry(0.35,10,8),new T.MeshStandardMaterial({color:0xfff1d0,emissive:0xffd9a0,emissiveIntensity:0.6})); lamp.position.set(x,4.4,z); scene.add(lamp); }
+  // 老榕樹與樹林（避開水池）
+  for(let i=0;i<90;i++){ const px=-320+((i*137)%1560), py=712+((i*73)%300);
+    if(Math.hypot((px-640)/80,(py-860)/52)<1) continue; if(px>400 && px<450 && py<900) continue; if(py>752 && py<778) continue;
+    tree(px,py,1.1+(i%3)*0.25,i%3===0,false); }
 })();
-// 臺南公園
-for(let i=0;i<46;i++){ const px=-150+((i*137)%1300), py=720+((i*73)%240); tree(px,py,1+(i%3)*0.2,i%5===0,false); }
 // 中庭樹
 
 /* ---------- player ---------- */
@@ -1554,6 +1628,17 @@ heron.position.copy(heron.userData.home);
 heron.userData.target = heron.position.clone();
 heron.userData.wait = 0;
 scene.add(heron);
+const chicks=[];
+for(let i=0;i<3;i++){ const c=new T.Group();
+  const gm=mat(0x8f8a84), sp=mat(0xe9e4da);
+  const b=shadowy(new T.Mesh(new T.SphereGeometry(0.9,12,9),gm)); b.scale.set(0.8,0.85,1.2); b.position.y=1.7; c.add(b);
+  for(let k=0;k<6;k++){ const d=new T.Mesh(new T.SphereGeometry(0.08,5,4),sp); const a=k*1.1; d.position.set(Math.cos(a)*0.62,1.8+Math.sin(k)*0.25,Math.sin(a)*0.9); c.add(d); }
+  const h=shadowy(new T.Mesh(new T.SphereGeometry(0.45,10,8),gm)); h.position.set(0,2.55,0.75); c.add(h);
+  const bk=new T.Mesh(new T.ConeGeometry(0.11,0.55,6),mat(0x5a5a52)); bk.rotation.x=Math.PI/2; bk.position.set(0,2.5,1.25); c.add(bk);
+  [-0.22,0.22].forEach(x=>{ const e=new T.Mesh(new T.SphereGeometry(0.07,6,5),mat(0xd9b030)); e.position.set(x,2.62,1.1); c.add(e);
+    const l=new T.Mesh(new T.CylinderGeometry(0.05,0.05,1.1,5),mat(0xc7b37a)); l.position.set(x,0.55,0); c.add(l); });
+  c.scale.setScalar(0.42); c.position.copy(heron.position); scene.add(c); chicks.push(c); }
+const heronTrail=[]; let trailT=0;
 
 /* ---------- 學生 ---------- */
 const SG = {
@@ -1581,23 +1666,40 @@ const SM = {
   skirt:new T.MeshStandardMaterial({color:0x23305a,roughness:0.9,side:T.DoubleSide}),
   skins:[mat(0xf0c9a5),mat(0xe6b991),mat(0xd8a67e),mat(0xf4d4b5)],
   hairs:[mat(0x1c1815),mat(0x2a211c),mat(0x3a2b21)],
+  black:mat(0x1c1c1e), jeans:mat(0x45597a), maidDress:new T.MeshStandardMaterial({color:0x1a1a22,roughness:0.85,side:T.DoubleSide}),
+  apron:new T.MeshStandardMaterial({color:0xfbfaf6,roughness:0.9,side:T.DoubleSide}), stock:mat(0xf4f2ee),
 };
+const NAME_TEX = drawTex(64,192,g=>{ g.fillStyle='#1c1c1e'; g.fillRect(0,0,64,192); g.fillStyle='#f4f2ee'; g.font='900 50px "Noto Serif TC", serif'; g.textAlign='center'; g.textBaseline='middle'; ['南','二','中'].forEach((c,i)=>g.fillText(c,32,34+i*60)); });
+lateTextures.push(NAME_TEX);
+const NAME_MAT = new T.MeshBasicMaterial({map:NAME_TEX});
 function makeStudent(girl, outfit, seed){
   const g = new T.Group();
   const skin = SM.skins[seed%4], hair = SM.hairs[seed%3];
-  const pe = outfit==='pe';
+  const pe = outfit==='pe', bk = outfit==='black', maid = outfit==='maid';
   const legs=[], arms=[];
   [-0.27,0.27].forEach(x=>{
     const leg=new T.Group(); leg.position.set(x,1.2,0);
-    const l=new T.Mesh(SG.leg, (!pe && !girl) ? SM.khaki : skin); l.position.y=-0.58; leg.add(l);
-    if(pe){ const sh=new T.Mesh(SG.shorts,SM.navy); sh.position.y=-0.18; leg.add(sh); }
-    const shoe=new T.Mesh(SG.shoe, (seed%3===0)?SM.shoeD:SM.shoeW); shoe.position.set(0,-1.12,0.08); leg.add(shoe);
+    const l=new T.Mesh(SG.leg, maid ? SM.stock : bk ? (seed%2?SM.jeans:skin) : (!pe && !girl) ? SM.khaki : skin); l.position.y=-0.58; leg.add(l);
+    if(pe || (bk && seed%2===0)){ const sh=new T.Mesh(SG.shorts,SM.navy); sh.position.y=-0.18; leg.add(sh); }
+    const shoe=new T.Mesh(SG.shoe, (maid||seed%3===0)?SM.shoeD:SM.shoeW); shoe.position.set(0,-1.12,0.08); leg.add(shoe);
     g.add(leg); legs.push(leg);
   });
-  const hip=new T.Mesh(SG.hip, pe||girl ? SM.navy : SM.khaki); hip.position.y=1.38; g.add(hip);
-  if(girl && !pe){ const sk=new T.Mesh(SG.skirt,SM.skirt); sk.position.y=1.15; g.add(sk); }
-  const torso=new T.Mesh(SG.torso,SM.white); torso.position.y=2.3; torso.castShadow=true; g.add(torso);
-  if(pe){
+  const hip=new T.Mesh(SG.hip, maid ? SM.black : bk ? (seed%2?SM.jeans:SM.navy) : pe||girl ? SM.navy : SM.khaki); hip.position.y=1.38; g.add(hip);
+  if(girl && !pe && !bk && !maid){ const sk=new T.Mesh(SG.skirt,SM.skirt); sk.position.y=1.15; g.add(sk); }
+  if(maid){
+    const dr=new T.Mesh(new T.CylinderGeometry(0.66,1.25,1.25,18,1,true),SM.maidDress); dr.position.y=1.05; g.add(dr);
+    const pet=new T.Mesh(new T.TorusGeometry(1.2,0.1,6,24),SM.apron); pet.rotation.x=Math.PI/2; pet.position.y=0.45; g.add(pet);
+    const ap=new T.Mesh(new T.PlaneGeometry(0.9,1.4),SM.apron); ap.position.set(0,1.25,0.92); ap.rotation.x=-0.35; g.add(ap);
+    const bib=new T.Mesh(new T.PlaneGeometry(0.7,0.7),SM.apron); bib.position.set(0,2.3,0.69); g.add(bib);
+    const bow=new T.Mesh(new T.TorusGeometry(0.22,0.08,6,12),SM.apron); bow.position.set(0,1.6,-0.7); bow.scale.x=1.8; g.add(bow);
+  }
+  const torso=new T.Mesh(SG.torso,(bk||maid)?SM.black:SM.white); torso.position.y=2.3; torso.castShadow=true; g.add(torso);
+  if(bk){
+    const nm=new T.Mesh(new T.PlaneGeometry(0.16,0.48),NAME_MAT); nm.position.set(0.26,2.55,0.635); g.add(nm);
+  } else if(maid){
+    const col=new T.Mesh(SG.collar,SM.apron); col.rotation.x=Math.PI/2; col.position.y=3.0; g.add(col);
+    const rib=new T.Mesh(new T.SphereGeometry(0.1,8,6),mat(0xb8262a)); rib.position.set(0,2.92,0.38); g.add(rib);
+  } else if(pe){
     const col=new T.Mesh(SG.collar,SM.navy); col.rotation.x=Math.PI/2; col.position.y=3.02; g.add(col);
     const crest=new T.Mesh(SG.patch,SM.crest); crest.position.set(0.24,2.6,0.6); g.add(crest);
   } else {
@@ -1606,7 +1708,8 @@ function makeStudent(girl, outfit, seed){
   }
   [-1,1].forEach(s=>{
     const arm=new T.Group(); arm.position.set(s*0.74,2.9,0);
-    const sl=new T.Mesh(SG.sleeve,SM.white); sl.position.y=-0.2; arm.add(sl);
+    const sl=new T.Mesh(maid?new T.SphereGeometry(0.34,10,8):SG.sleeve,(bk||maid)?SM.black:SM.white); sl.position.y=-0.2; arm.add(sl);
+    if(maid){ const cuff=new T.Mesh(SG.trim,SM.apron); cuff.position.y=-1.2; arm.add(cuff); }
     if(pe){ const tr=new T.Mesh(SG.trim,SM.navy); tr.position.y=-0.42; arm.add(tr); }
     const a=new T.Mesh(SG.arm,skin); a.position.y=-0.85; arm.add(a);
     arm.rotation.z = s*0.08;
@@ -1618,6 +1721,9 @@ function makeStudent(girl, outfit, seed){
       const tail=new T.Mesh(SG.tail,hair); tail.position.set(0,3.25,-0.62); tail.rotation.x=0.35; g.add(tail); }
     else { const h=new T.Mesh(SG.bob,hair); h.position.y=3.58; h.rotation.x=-0.3; g.add(h); }
   } else { const h=new T.Mesh(SG.cap,hair); h.position.y=3.62; h.rotation.x=-0.25; h.scale.set(1,0.85,1); g.add(h); }
+  if(maid){ const hair2=new T.Mesh(new T.CylinderGeometry(0.62,0.55,1.5,12,1,true,Math.PI*0.25,Math.PI*1.5),hair); hair2.position.set(0,3.0,-0.05); hair2.rotation.y=Math.PI; g.add(hair2);
+    const band=new T.Mesh(new T.TorusGeometry(0.62,0.08,6,18,Math.PI),SM.apron); band.position.set(0,3.85,0.05); band.rotation.y=Math.PI/2; band.rotation.z=Math.PI/2; band.rotation.order='YZX'; g.add(band);
+    for(let i=0;i<5;i++){ const f=new T.Mesh(new T.SphereGeometry(0.1,6,5),SM.apron); const a=Math.PI*(0.15+i*0.175); f.position.set(Math.cos(a)*0.64,3.85+Math.sin(a)*0.25,0.15); g.add(f); } }
   [-0.22,0.22].forEach(x=>{ const e=new T.Mesh(SG.eye,SM.eye); e.position.set(x,3.6,0.55); g.add(e); });
   const k = (girl?0.93:1) * (0.95+((seed*37)%10)/100);
   g.scale.setScalar(k);
@@ -1655,7 +1761,7 @@ const ROUTES = [
   [[228,528],[400,528]],
   [[222,530],[222,400]],
 ];
-[[7,0.1,1,'uniform'],[7,0.6,0,'uniform'],[0,0.0,1,'uniform'],[0,0.5,0,'uniform'],[1,0.2,1,'uniform'],[1,0.7,0,'pe'],[2,0.1,0,'uniform'],[2,0.6,1,'pe'],
+[[7,0.1,1,'uniform'],[7,0.6,0,'uniform'],[0,0.3,0,'black'],[3,0.6,1,'black'],[5,0.6,0,'black'],[2,0.4,0,'black'],[0,0.75,1,'maid'],[0,0.0,1,'uniform'],[0,0.5,0,'uniform'],[1,0.2,1,'uniform'],[1,0.7,0,'pe'],[2,0.1,0,'uniform'],[2,0.6,1,'pe'],
  [3,0.3,1,'uniform'],[4,0.2,0,'uniform'],[4,0.8,1,'uniform'],[5,0.3,1,'uniform'],[5,0.9,0,'uniform'],[6,0.5,0,'uniform']]
 .forEach(([ri,f,girl,outfit])=>{
   const pts = ROUTES[ri].map(p=>new T.Vector3(X(p[0]),0,Z(p[1])));
@@ -1688,7 +1794,7 @@ const balls = [];
 });
 // 站著聊天的小群組
 [[380,400,3,'uniform'],[200,336,3,'uniform'],[410,578,2,'uniform'],[300,500,3,'uniform'],[552,506,2,'uniform'],
- [348,540,2,'uniform'],[256,530,2,'uniform'],[650,400,2,'uniform'],[510,393,4,'pe'],[300,170,2,'pe']]
+ [348,540,2,'uniform'],[256,530,2,'black'],[650,400,2,'uniform'],[214,326,3,'black'],[420,580,2,'black'],[510,393,4,'pe'],[300,170,2,'pe']]
 .forEach(([px,py,n,outfit],gi)=>{
   const cx=X(px), cz=Z(py);
   for(let i=0;i<n;i++){
@@ -1698,6 +1804,18 @@ const balls = [];
     s.mesh.rotation.y=Math.atan2(cx-s.mesh.position.x, cz-s.mesh.position.z);
   }
 });
+// 驚喜：女僕娃娃（噴泉邊轉圈、紫卿亭前鞠躬、美食廣場招呼）
+// 女僕娃娃：不定時在校園各處隨機出現、消失
+const MAID_SPOTS=[[625,578],[186,412],[357,486],[214,420],[592,404],[290,500],[488,214],[476,350],[694,382],[530,500],[550,220],[420,592],[320,166],[240,330],[686,348],[430,470]];
+const maids=[0,1,2].map(()=>{ const s=addStudent('twirl',true,'maid',{}); s.mesh.position.set(-9999,0,-9999); s.mesh.visible=false; s.timer=3+Math.random()*12; return s; });
+function updateMaids(dt){
+  maids.forEach(m=>{ m.timer-=dt; if(m.timer>0) return;
+    if(m.mesh.visible && Math.random()<0.5){ m.mesh.visible=false; m.mesh.position.set(-9999,0,-9999); m.timer=10+Math.random()*25; return; }
+    const used=maids.filter(o=>o!==m && o.mesh.visible).map(o=>o.spot);
+    let pick; for(let k=0;k<8;k++){ pick=MAID_SPOTS[Math.floor(Math.random()*MAID_SPOTS.length)]; if(!used.includes(pick)) break; }
+    m.spot=pick; m.type=Math.random()<0.5?'twirl':'bow'; m.mesh.rotation.set(0,Math.random()*6.28,0);
+    m.mesh.position.set(X(pick[0])+(Math.random()-0.5)*2,0,Z(pick[1])+(Math.random()-0.5)*2); m.mesh.visible=true; m.timer=15+Math.random()*25; });
+}
 function faceTo(m, dx, dz, dt, k=8){ let d=Math.atan2(dx,dz)-m.rotation.y; d=Math.atan2(Math.sin(d),Math.cos(d)); m.rotation.y+=d*Math.min(1,dt*k); }
 const tmpV = new T.Vector3();
 function updateStudents(dt, t){
@@ -1723,6 +1841,12 @@ function updateStudents(dt, t){
       tmpV.subVectors(s.target,m.position); tmpV.y=0; const d=tmpV.length();
       if(d<0.4){ const r=s.court; s.target.set(r.x+(Math.random()-0.5)*r.w*0.75,0,r.z+(Math.random()-0.5)*r.d*0.75); animateStudent(s,false,0,t); }
       else { tmpV.multiplyScalar(1/d); m.position.x+=tmpV.x*s.speed*dt; m.position.z+=tmpV.z*s.speed*dt; faceTo(m,tmpV.x,tmpV.z,dt); animateStudent(s,true,s.speed,t); }
+    } else if(s.type==='twirl'){
+      m.rotation.y += dt*1.4; animateStudent(s,false,0,t);
+      m.userData.arms[0].rotation.z = 1.2+Math.sin(t*3)*0.2; m.userData.arms[1].rotation.z = -1.2-Math.sin(t*3)*0.2;
+    } else if(s.type==='bow'){
+      const ph=(t*0.6+s.mesh.userData.phase)%4; m.rotation.x = ph<0.8 ? Math.sin(ph/0.8*Math.PI)*0.45 : 0;
+      faceTo(m, player.position.x-m.position.x, player.position.z-m.position.z, dt, 3); animateStudent(s,false,0,t);
     } else {
       animateStudent(s,false,0,t);
       m.userData.arms[1].rotation.x = Math.sin(t*2+m.userData.phase)>0.6 ? -0.9 : m.userData.arms[1].rotation.x;
@@ -1740,18 +1864,128 @@ function updateStudents(dt, t){
   }
 }
 
+/* ---------- 舊校門：東南角斜切處，面向北門路與公園北路路口（現已關閉） ---------- */
+(function(){
+  const A=[X(728),Z(592)], B=[X(698),Z(622)], C=[(A[0]+B[0])/2,(A[1]+B[1])/2];
+  const g=new T.Group(); g.position.set(C[0],0,C[1]); g.rotation.y=Math.PI/4; scene.add(g);   // 本地 x：西南→東北；本地 +z：朝外（東南）
+  const toW=(lx,lz)=>{ const c=Math.SQRT1_2; return [C[0]+lx*c+lz*c, C[1]-lx*c+lz*c]; };
+  const add=(m,x,y,z)=>{ m.position.set(x,y,z); g.add(m); return m; };
+  const STRIPE=(gg,w,h)=>{ gg.fillStyle='#ece3cf'; gg.fillRect(0,0,w,h); for(let y=8;y<h;y+=16){ gg.fillStyle='#b5503c'; gg.fillRect(0,y,w,5); } };
+  const PANEL=(gg,w,h)=>{ STRIPE(gg,w,h); gg.fillStyle='#a8432f'; gg.fillRect(w*0.22,8,w*0.56,h-16); gg.fillStyle='rgba(0,0,0,.18)'; for(let y=8;y<h-8;y+=6) gg.fillRect(w*0.22,y,w*0.56,1); for(let y=8,r=0;y<h-8;y+=6,r++) for(let x=w*0.22+(r%2)*5;x<w*0.78;x+=10) gg.fillRect(x,y,1,6); };
+  const stripeM=texMat('ogStripe',1,2,64,128,STRIPE), panelM=texMat('ogPanel',1,2,64,128,PANEL), cap=mat(0xd9d2c2), iron=mat(0x1f1f21,{metalness:0.5,roughness:0.4});
+  const pl1=vText('國立臺南第二高級中學',96,720,52,'#7a3a2a','#f1e2c0'), pl2=vText('臺灣總督府臺南中學校',96,720,52,'#7a3a2a','#f1e2c0'); lateTextures.push(pl1,pl2);
+  function pillar(lx,inner,plaque){ const w=inner?2.2:1.9, h=inner?4.2:3.4;
+    add(shadowy(new T.Mesh(new T.BoxGeometry(w,h,w),inner?stripeM:panelM)),lx,h/2,0);
+    add(shadowy(new T.Mesh(new T.BoxGeometry(w+0.35,0.4,w+0.35),cap)),lx,h+0.2,0);
+    add(new T.Mesh(new T.BoxGeometry(w+0.5,0.3,w+0.5),mat(0xbfb6a4)),lx,0.15,0);
+    if(plaque){ [1,-1].forEach(s2=>{ const p=add(new T.Mesh(new T.PlaneGeometry(0.75,3.1),new T.MeshBasicMaterial({map:plaque})),lx,2.3,s2*(w/2+0.02)); if(s2<0) p.rotation.y=Math.PI; });
+      add(new T.Mesh(new T.CylinderGeometry(0.07,0.07,0.6,6),iron),lx,h+0.7,0);
+      add(new T.Mesh(new T.CylinderGeometry(0.3,0.22,0.65,6),new T.MeshStandardMaterial({color:0xfff2d2,emissive:0xffe0a8,emissiveIntensity:0.5})),lx,h+1.3,0);
+      add(new T.Mesh(new T.ConeGeometry(0.42,0.35,6),iron),lx,h+1.8,0); }
+    const [wx,wz]=toW(lx,0); addCollider(wx,wz,w,w); footprints.push({x:wx,z:wz,w,d:w,c:'#d9b48a'}); }
+  function grille(x1,x2,h){ const L=x2-x1, cx=(x1+x2)/2;
+    [0.25,h-0.15].forEach(y=>add(new T.Mesh(new T.BoxGeometry(L,0.1,0.08),iron),cx,y,0));
+    for(let x=x1+0.15;x<x2;x+=0.26) add(new T.Mesh(new T.BoxGeometry(0.05,h,0.05),iron),x,h/2,0);
+    for(let x=x1+0.15;x<x2;x+=0.52) add(new T.Mesh(new T.ConeGeometry(0.06,0.18,4),iron),x,h+0.05,0); }
+  // 由西南（左）到東北（右）：外柱、小門、內柱（國立臺南第二高級中學）、大門、內柱（臺灣總督府臺南中學校）、小門、外柱
+  pillar(-9.2,false); grille(-8.2,-6.1,1.9); pillar(-5,true,pl1); grille(-3.9,0,1.9); grille(0,3.9,1.9); pillar(5,true,pl2); grille(6.1,8.2,1.9); pillar(9.2,false);
+  add(new T.Mesh(new T.BoxGeometry(0.12,2.1,0.12),iron),0,1.05,0);
+  // 門外：踏石小徑與半圓草地（朝外）
+  const lawn=add(new T.Mesh(new T.CircleGeometry(4.4,32,0,Math.PI),mat(0x8a9a5e)),0,0.05,0.3); lawn.rotation.x=-Math.PI/2; lawn.rotation.z=Math.PI;
+  for(let i=0;i<=10;i++){ const a=i/10*Math.PI; const st=add(new T.Mesh(new T.CylinderGeometry(0.42,0.42,0.1,10),mat(0x9a948a)),Math.cos(a)*3.4,0.09,0.3+Math.sin(a)*3.4); st.scale.z=0.7; }
+  for(let i=0;i<5;i++){ const st=add(new T.Mesh(new T.BoxGeometry(1.1,0.08,0.7),mat(0xb3ada2)),-7.2,0.06,1+i*1.1); }
+  // 門內：老榕樹（偏右）
+  tree(707,588,1.25,true);
+  // 舊警衛室：在門的右手邊（東北側），白色平頂、出挑屋簷、紅磚牆腳
+  const gr=R(712,573,727,588);
+  const gh=shadowy(new T.Mesh(new T.BoxGeometry(gr.w,3.2,gr.d),mat(0xf0ede6))); gh.position.set(gr.x,1.6,gr.z); scene.add(gh); occluders.push(gh); addCollider(gr.x,gr.z,gr.w,gr.d);
+  const slab=shadowy(new T.Mesh(new T.BoxGeometry(gr.w+2,0.35,gr.d+2),mat(0xf6f4ef))); slab.position.set(gr.x,3.38,gr.z); scene.add(slab);
+  const base=new T.Mesh(new T.BoxGeometry(gr.w+0.1,0.9,gr.d+0.1),texMat('ghBase',3,0.3,64,64,(gg)=>brickCanvas(gg,64,64,'#a8432f','#8f3a27',4,12))); base.position.set(gr.x,0.45,gr.z); scene.add(base);
+  [[gr.x+gr.w/2+0.02,gr.z,Math.PI/2],[gr.x,gr.z+gr.d/2+0.02,0]].forEach(([x,z,ry])=>{ const f=new T.Mesh(new T.PlaneGeometry(4,1.6),mat(0xf6f4ef)); f.position.set(x,2,z); f.rotation.y=ry; scene.add(f);
+    const w=new T.Mesh(new T.PlaneGeometry(3.6,1.3),mat(0x3e4a50)); w.position.set(x+(ry?0.01:0),2,z+(ry?0:0.01)); w.rotation.y=ry; scene.add(w); });
+  const sign=new T.Mesh(new T.PlaneGeometry(0.5,0.5),mat(0xf2f2f2)); sign.position.set(gr.x+gr.w/2+0.03,1.5,gr.z+3); sign.rotation.y=Math.PI/2; scene.add(sign);
+  footprints.push({x:gr.x,z:gr.z,w:gr.w,d:gr.d,c:'#f0ede6'});
+})();
+/* ---------- 舊鐵道：牆外的台鐵縱貫線，自強號、區間車不定時出現 ---------- */
+const TRACKS=[X(801), X(811)];
+(function(){
+  const sleeper=mat(0x5c5249), steel=mat(0x9aa0a4,{metalness:0.7,roughness:0.35});
+  const z1=Z(-400), z2=Z(900), L=z2-z1;
+  TRACKS.forEach(tx=>{
+    [-0.75,0.75].forEach(dx=>{ const r=new T.Mesh(new T.BoxGeometry(0.12,0.18,L),steel); r.position.set(tx+dx,0.25,(z1+z2)/2); scene.add(r); });
+    const sl=new T.InstancedMesh(new T.BoxGeometry(2.6,0.15,0.3),sleeper,Math.floor(L/0.9)); const m4=new T.Matrix4();
+    for(let i=0;i<sl.count;i++){ m4.makeTranslation(tx,0.1,z1+i*0.9); sl.setMatrixAt(i,m4); } sl.receiveShadow=true; scene.add(sl);
+  });
+  // 電車線桿
+  for(let pz=z1; pz<z2; pz+=50){ const x=X(818);
+    const pole=shadowy(new T.Mesh(new T.BoxGeometry(0.35,8,0.35),mat(0x8d969c))); pole.position.set(x,4,pz); scene.add(pole);
+    const arm=new T.Mesh(new T.BoxGeometry(9,0.2,0.2),mat(0x8d969c)); arm.position.set(x-4.5,7.6,pz); scene.add(arm); }
+  TRACKS.forEach(tx=>{ const w=new T.Mesh(new T.BoxGeometry(0.04,0.04,L),mat(0x333333)); w.position.set(tx,7.2,(z1+z2)/2); scene.add(w); });
+})();
+function makeTrain(kind){
+  const g=new T.Group(), cars=kind==='tc'?8:4, CL=20;
+  const body=mat(0xf5f4f0,{roughness:0.4,metalness:0.2}), win=mat(0x1d2328,{roughness:0.2}),
+        s1=mat(kind==='tc'?0xe2741f:0x2f5fb0), s2=mat(kind==='tc'?0x3a2f2a:0xf0c234), under=mat(0x3a3d40);
+  for(let c=0;c<cars;c++){ const z=-c*(CL+0.6);
+    const b=shadowy(new T.Mesh(new T.BoxGeometry(3.1,3.4,CL),body)); b.position.set(0,2.6,z); g.add(b);
+    const w=new T.Mesh(new T.BoxGeometry(3.14,0.9,CL-2),win); w.position.set(0,3.1,z); g.add(w);
+    const a=new T.Mesh(new T.BoxGeometry(3.15,0.3,CL),s1); a.position.set(0,2.1,z); g.add(a);
+    const bb=new T.Mesh(new T.BoxGeometry(3.15,0.14,CL),s2); bb.position.set(0,1.8,z); g.add(bb);
+    const u=new T.Mesh(new T.BoxGeometry(2.6,0.7,CL-3),under); u.position.set(0,0.75,z); g.add(u);
+    const roof=new T.Mesh(new T.BoxGeometry(2.9,0.3,CL-1),mat(0xb9bcbf)); roof.position.set(0,4.45,z); g.add(roof);
+    if(kind==='rc'){ [-6,0,6].forEach(dz=>[-1,1].forEach(sx=>{ const d=new T.Mesh(new T.BoxGeometry(0.05,2.2,1.4),mat(0xd9d9d6)); d.position.set(sx*1.58,2.3,z+dz); g.add(d); })); }
+  }
+  [0, -(cars-1)*(CL+0.6)].forEach((z,i)=>{ const dir=i===0?1:-1;
+    const nose=shadowy(new T.Mesh(new T.CylinderGeometry(0.8,1.7,kind==='tc'?4:2,4,1),body)); nose.rotation.x=dir*Math.PI/2; nose.rotation.y=Math.PI/4; nose.scale.set(1.25,1,1.35); nose.position.set(0,2.5,z+dir*(CL/2+(kind==='tc'?1.8:0.9))); g.add(nose);
+    const ws=new T.Mesh(new T.BoxGeometry(2.4,1,0.3),win); ws.position.set(0,3.2,z+dir*(CL/2+0.2)); g.add(ws);
+    const st=new T.Mesh(new T.BoxGeometry(3.16,0.3,kind==='tc'?3.6:1.8),s1); st.position.set(0,2.1,z+dir*(CL/2+0.9)); g.add(st);
+    [-0.9,0.9].forEach(x=>{ const hl=new T.Mesh(new T.SphereGeometry(0.16,8,6),new T.MeshStandardMaterial({color:0xfff6dd,emissive:0xfff0c0,emissiveIntensity:0.8})); hl.position.set(x,1.7,z+dir*(CL/2+(kind==='tc'?2.6:1.3))); g.add(hl); });
+  });
+  g.userData={len:cars*(CL+0.6)+6, kind, name: kind==='tc'?'自強號':'區間車'}; g.visible=false; scene.add(g); return g;
+}
+const trains=[makeTrain('tc'), makeTrain('rc')];
+let trainActive=null, trainWait=(window.__TW||12+Math.random()*10), trainHonked=false;
+let audioCtx=null, soundOn=false, rumble=null;
+function initAudio(){ if(audioCtx) return; try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const len=audioCtx.sampleRate*2, buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate), d=buf.getChannelData(0); for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+  const src=audioCtx.createBufferSource(); src.buffer=buf; src.loop=true; const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=180;
+  const gn=audioCtx.createGain(); gn.gain.value=0; src.connect(lp); lp.connect(gn); gn.connect(audioCtx.destination); src.start(); rumble=gn; }catch(e){ audioCtx=null; } }
+function horn(vol){ if(!audioCtx||!soundOn) return; const t0=audioCtx.currentTime; [370,466].forEach(f=>{ const o=audioCtx.createOscillator(), gn=audioCtx.createGain(); o.type='sawtooth'; o.frequency.value=f;
+  const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1400; gn.gain.setValueAtTime(0,t0); gn.gain.linearRampToValueAtTime(0.06*vol,t0+0.05); gn.gain.setValueAtTime(0.06*vol,t0+0.9); gn.gain.linearRampToValueAtTime(0,t0+1.2);
+  o.connect(lp); lp.connect(gn); gn.connect(audioCtx.destination); o.start(t0); o.stop(t0+1.3); }); }
+let toastTimer=0;
+function toast(msg){ const el=$('toast'); el.textContent=msg; el.classList.remove('off'); toastTimer=4; }
+function updateTrains(dt){
+  if(toastTimer>0){ toastTimer-=dt; if(toastTimer<=0) $('toast').classList.add('off'); }
+  if(!trainActive){ trainWait-=dt; if(rumble) rumble.gain.value=0; if(trainWait<=0){
+      const tr=trains[Math.random()<0.5?0:1], north=Math.random()<0.5;
+      tr.userData.dir = north?1:-1; tr.userData.speed = tr.userData.kind==='tc'?38:26;
+      tr.position.set(TRACKS[north?1:0], 0, north ? Z(-420)-tr.userData.len : Z(920)+tr.userData.len);
+      tr.rotation.y = north?0:Math.PI; tr.visible=true; trainActive=tr; trainHonked=false;
+      toast((north?'⇣ 往台南站 ':'⇡ 往新營 ')+tr.userData.name+' 通過中'); }
+    return; }
+  const tr=trainActive; tr.position.z += tr.userData.dir*tr.userData.speed*dt;
+  const near=Math.abs(tr.position.z-tr.userData.dir*tr.userData.len/2-player.position.z), dist=Math.hypot(tr.position.x-player.position.x, near);
+  if(!trainHonked && dist<160){ trainHonked=true; horn(Math.max(0.3,1-dist/200)); }
+  if(rumble) rumble.gain.value = soundOn ? Math.max(0,0.35*(1-dist/220)) : 0;
+  const done = tr.userData.dir>0 ? tr.position.z-tr.userData.len>Z(930) : tr.position.z+tr.userData.len<Z(-430);
+  if(done){ tr.visible=false; trainActive=null; trainWait=25+Math.random()*35; }
+}
 /* ---------- places (spot/look/label in plan pixels) ---------- */
 const PLACES = [
   {id:'gate', name:'大門', kind:'入口', spot:[425,634], look:[425,600], r:10, lab:[437,11.5,622],
    desc:'公園北路上的正門。左邊是刻著校名的石牆和伸縮門，中間一根石砌大柱直寫「國立臺南第二高級中學」，右邊是傳達室，屋頂的 LED 看板會輪播學校消息。走進去往北就是林蔭車道。',
    fact:'1914 年創校，原名「臺灣總督府臺南中學校」，是日治時期臺灣南部最早設立的中學。'},
+  {id:'park', name:'臺南公園', kind:'校外', spot:[425,654], look:[425,700], r:6, lab:[425,10,700],
+   desc:'學校大門正對面就是臺南公園。紅柱綠瓦的入口牌樓後面是一大片老榕樹，往裡走有燕潭和湖心亭。放學後很多同學會穿過公園回家。',
+   fact:''},
   {id:'island', name:'入口安全島', kind:'入口', spot:[432,530], look:[438,470], r:9, lab:[446,10,505],
    desc:'進大門往北的車道中間有一條種滿樹的安全島，左邊一排椰子樹，右邊樹籬後面是弘道樓的白色圓柱門廊。直走到底，看到的黃磚牆和馬賽克壁畫就是明德堂。',
    fact:''},
-  {id:'arch', name:'止於至善', kind:'校訓', spot:[536,596], look:[536,614], r:7, lab:[536,10,614],
+  {id:'arch', name:'止於至善', kind:'校訓', spot:[568,597], look:[568,614], r:7, lab:[568,10,614],
    desc:'噴泉西南邊、貼著公園北路圍牆的牌樓，跟圍牆平行，字面朝向校園，所以從校外看不到。兩根紅柱撐起綠色琉璃瓦的飛簷，中間米色匾額由右往左寫著校訓「止於至善」，下面是木條。',
    fact:'校訓出自《大學》：大學之道，在明明德，在親民，在止於至善。'},
-  {id:'sun', name:'噴泉', kind:'紅樓前', spot:[606,598], look:[575,588], r:8, lab:[575,8.5,590],
+  {id:'sun', name:'噴泉', kind:'紅樓前', spot:[634,598], look:[603,590], r:8, lab:[603,8.5,592],
    desc:'紅樓前圓形廣場中間的噴泉。石砌圓池中央立著一個黑色圓環雕塑，上面點綴著金色，四周是紅磚步道、草地和大樹，西南邊是止於至善的矮牆，北邊是紅樓的拱門。',
    fact:''},
   {id:'genkan', name:'紅樓', kind:'市定古蹟', spot:[575,566], look:[575,548], r:7, lab:[575,16,552],
@@ -1772,6 +2006,12 @@ const PLACES = [
   {id:'arcade', name:'紅磚拱廊', kind:'弘道樓', spot:[598,492], look:[575,484], r:7, lab:[575,8,470],
    desc:'連接南北兩側樓的一樓紅磚拱廊，兩側一整排圓拱，屋頂擺滿盆栽。左手邊穿過拱洞就是蓮霧樹的天井；右手邊往下一層是地下一樓的綠色大平台，南北兩端都有樓梯下去。南接紅樓穿堂，北邊穿出弘道樓就是操場。',
    fact:''},
+  {id:'oldgate', name:'舊校門', kind:'歷史', spot:[698,604], look:[716,610], r:8, lab:[713,11,607],
+   desc:'校園東南角是斜切的，舊校門就開在這道斜邊上，正對北門路和公園北路的路口，現在已經關起來了。外側兩根門柱嵌著紅磚，中間兩根米白色門柱有一道道紅磚橫紋，左邊門牌寫「國立臺南第二高級中學」，右邊寫「臺灣總督府臺南中學校」，頂上各一盞燈。門後是一棵老榕樹，右手邊是白色平頂的舊警衛室。',
+   fact:''},
+  {id:'railway', name:'舊鐵道', kind:'回憶', spot:[692,613], look:[805,640], r:5, lab:[806,13,560],
+   desc:'從舊校門往外看，北門路對面以前就是台鐵縱貫線，上課時常常聽到火車經過。現在鐵路已經地下化，地面上看不到了；這裡把它找回來，站一會兒，自強號或區間車有時候會突然出現，然後遠去。',
+   fact:'右上角的「聲音」打開，火車經過時會聽到鳴笛。'},
   {id:'auditorium', name:'小禮堂', kind:'市定古蹟', spot:[650,344], look:[686,318], r:10, lab:[686,21,295],
    desc:'原臺南中學校的講堂。紅磚和灰白石材一層層交錯，正面是大三角山牆，上面開三扇圓拱窗；門廊有四根紅磚柱，後面是拱形門窗，兩側是拱形迴廊。',
    fact:'2010 年獲中央補助開始維修，2014 年整修完成，列為市定古蹟。'},
@@ -1824,13 +2064,16 @@ const PLACES = [
    desc:'兩棟仁愛樓之間的中庭，大樹底下圍著一圈樹籬，中間是一座綠色的金屬環形雕塑。',
    fact:''},
   {id:'ziqing', name:'紫卿亭', kind:'涼亭', spot:[188,404], look:[163,402], r:7, lab:[163,10,402],
-   desc:'仁愛樓前方的八角涼亭，綠色琉璃瓦屋頂配上紅色柱子，坐落在三層圓形台階上。下課常有同學坐在裡面聊天、背單字。',
+   desc:'仁愛樓前棟前方、英文科和社會科辦公室門口的八角涼亭。綠色琉璃瓦屋頂配上紅色柱子，坐落在三層圓形台階上，四周是紅磚廣場。下課常有同學坐在裡面聊天、背單字。',
    fact:''},
   {id:'bridge', name:'仁愛樓連通橋', kind:'仁愛樓', spot:[180,322], look:[158,324], r:6, lab:[158,19,322],
    desc:'從仁愛樓後棟往南伸出去的清水混凝土框架，每層都是開放走廊，最上面是藍色採光罩。南端接著一座白色樓梯塔，牆上三個直排圓窗、側邊是粉紅欄杆的陽台，再過去就是前棟。',
    fact:''},
-  {id:'pinkwing', name:'仁愛樓西側連接棟', kind:'仁愛樓', spot:[134,414], look:[128,398], r:7, lab:[128,15,356],
-   desc:'把仁愛樓前後棟連起來的粉紅面磚樓。南端是圓弧陽台，頂樓有花架，入口有幾階台階。',
+  {id:'pinkwing', name:'英文科・社會科辦公室', kind:'仁愛樓', spot:[150,414], look:[128,396], r:7, lab:[128,15,356],
+   desc:'仁愛樓前棟旁邊的粉紅面磚樓，英文科和社會科辦公室都在這裡。頂樓有花架，南端是圓弧陽台，入口有幾階台階；門口前面就是紫卿亭和紅磚廣場。',
+   fact:''},
+  {id:'deadtree', name:'枯木', kind:'仁愛樓', spot:[212,414], look:[200,402], r:5, lab:[200,10,402],
+   desc:'仁愛樓前棟前面、紅磚廣場上的一截老樹幹，立在橢圓形的石砌花台裡，樹幹上還有一個樹洞。',
    fact:''},
   {id:'kgym', name:'K 館', kind:'運動', spot:[224,490], look:[196,450], r:9, lab:[191,15,445],
    desc:'紫卿亭南邊獨立的一棟粉紅面磚三層樓，正面朝東。左邊是有柱子的門廊和台階，二樓露台上搭著綠色遮陽棚。大考時也會當作考生休息區。',
@@ -1936,7 +2179,8 @@ function setList(on){ $('list').hidden = !on; $('btnList').setAttribute('aria-pr
 $('btnList').addEventListener('click',()=>setList($('list').hidden));
 $('btnLabel').addEventListener('click',()=>{ labelsOn=!labelsOn; labels.forEach(l=>l.visible=labelsOn); $('btnLabel').setAttribute('aria-pressed',labelsOn?'true':'false'); });
 $('btnHelp').addEventListener('click',()=>{ $('intro').hidden=false; });
-$('go').addEventListener('click',()=>{ $('intro').hidden=true; });
+$('go').addEventListener('click',()=>{ $('intro').hidden=true; initAudio(); soundOn=!!audioCtx; $('btnSound').setAttribute('aria-pressed',soundOn?'true':'false'); if(audioCtx&&audioCtx.resume) audioCtx.resume(); });
+$('btnSound').addEventListener('click',()=>{ initAudio(); if(audioCtx&&audioCtx.resume) audioCtx.resume(); soundOn=!soundOn && !!audioCtx; $('btnSound').setAttribute('aria-pressed',soundOn?'true':'false'); });
 
 /* ---------- fly to ---------- */
 let fly = null;
@@ -1983,6 +2227,7 @@ function drawMini(){
   mg.fillStyle='#b9bcb4'; mg.fillRect(0,0,Wd,Ht);
   mg.fillStyle='#55524f'; let [a,b]=mapXY(X(-50),Z(628)); mg.fillRect(0,b,Wd,(62*S)*k);
   [a,b]=mapXY(X(738),Z(0)); mg.fillRect(a,0,52*S*k,Ht);
+  mg.fillStyle='#6b5f52'; [a,b]=mapXY(X(799),Z(0)); mg.fillRect(a,0,3,Ht); [a,b]=mapXY(X(810),Z(0)); mg.fillRect(a,0,3,Ht);
   mg.beginPath(); CAMPUS.forEach((p,i)=>{ const [x,y]=mapXY(p[0],p[1]); i?mg.lineTo(x,y):mg.moveTo(x,y); }); mg.closePath();
   mg.fillStyle='#e2ddd2'; mg.fill(); mg.strokeStyle='#2b2420'; mg.lineWidth=2; mg.stroke();
   footprints.forEach(f=>{
@@ -2103,8 +2348,15 @@ function step(){
       heron.position.y = Math.abs(Math.sin(t*6))*0.08; hd.head.position.y = 3; }
   }
   updateStudents(dt, t);
+  updateTrains(dt);
+  updateMaids(dt);
   if(ledState && (ledFrame++ % 3 === 0)) ledState.draw(t);
   if(heronLabel) heronLabel.position.set(heron.position.x,5.6,heron.position.z);
+  trailT+=dt; if(trailT>0.12){ trailT=0; heronTrail.push(heron.position.clone()); if(heronTrail.length>60) heronTrail.shift(); }
+  chicks.forEach((c,i)=>{ const idx=heronTrail.length-1-(i+1)*9; if(idx<0) return; const tp=heronTrail[idx];
+    const dx=tp.x-c.position.x, dz=tp.z-c.position.z, d=Math.hypot(dx,dz);
+    if(d>0.05){ c.position.x+=dx*Math.min(1,dt*3); c.position.z+=dz*Math.min(1,dt*3); c.rotation.y=Math.atan2(dx,dz); c.position.y=Math.abs(Math.sin(t*9+i))*0.06; }
+    c.children[0].rotation.x=0; });
   if(window.__sunSculpt) window.__sunSculpt.rotation.y = t*0.3;
 
   let best=null, bd=1e9;
@@ -2127,7 +2379,8 @@ function step(){
   camSmooth.lerp(camDir.clone().multiplyScalar(cd), Math.min(1, dt*8));
   camera.position.copy(camTarget).add(camSmooth);
   camera.lookAt(camTarget);
-  sun.position.set(player.position.x-80, 170, player.position.z+110);
+  sun.position.set(player.position.x-150, 120, player.position.z+90);
+  skyDome.position.copy(camera.position);
   sun.target.position.set(player.position.x,0,player.position.z); sun.target.updateMatrixWorld();
   for(const l of labels){ const d=camera.position.distanceTo(l.position); l.visible = labelsOn && d>30; l.material.opacity = Math.min(1,(d-30)/16); }
   renderer.render(scene, camera);
@@ -2140,6 +2393,14 @@ Promise.race([
   (document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 44px "Noto Serif TC"','南二中大門止於至善國立臺南第二高級中學'), document.fonts.load('700 16px "Noto Sans TC"','N')]) : Promise.resolve()),
   new Promise(r=>setTimeout(r,2500))
 ]).catch(()=>{}).then(buildLabels);
+(function(){ const done=new Set();
+  scene.traverse(o=>{ if(o.userData && o.userData.keepColor) return; const ms=o.material ? (Array.isArray(o.material)?o.material:[o.material]) : [];
+    ms.forEach(m=>{ if(!m || done.has(m)) return; done.add(m);
+      if(m.color && !m.isShaderMaterial) m.color.convertSRGBToLinear();
+      if(m.emissive) m.emissive.convertSRGBToLinear();
+      if(m.map){ m.map.encoding=T.sRGBEncoding; m.map.needsUpdate=true; }
+      m.needsUpdate=true; }); });
+})();
 $('loading').hidden = true;
 requestAnimationFrame(step);
 })();
