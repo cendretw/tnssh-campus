@@ -17,6 +17,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#cfe0e6;color:var(--in
 #warm{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(255,236,205,0) 55%,rgba(120,72,30,.22) 100%);mix-blend-mode:multiply}
 #toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);padding:8px 16px;font-weight:700;font-size:14px;transition:opacity .4s}
 #toast.off{opacity:0}
+#clock{font-variant-numeric:tabular-nums;color:var(--brick-deep);font-weight:700}
 canvas{display:block}
 [hidden]{display:none!important}
 .panel{background:var(--paper);border:1.5px solid var(--ink);box-shadow:3px 3px 0 rgba(43,36,32,.85)}
@@ -88,7 +89,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 <div id="brand" class="panel">
   <div class="k">TNSSH · Since 1914</div>
   <h1>南二中校園漫遊</h1>
-  <div class="meta"><span>已走訪 <b id="count">0</b> / <span id="total">0</span></span><span id="where">公園北路大門</span></div>
+  <div class="meta"><span>已走訪 <b id="count">0</b> / <span id="total">0</span></span><span id="where">公園北路大門</span><span id="clock">--:--</span></div>
 </div>
 
 <div id="side">
@@ -96,6 +97,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   <div class="tools">
     <button id="btnList" aria-pressed="false">地點清單</button>
     <button id="btnLabel" aria-pressed="true">名牌</button>
+    <button id="btnTime">時間：現在</button>
     <button id="btnSound" aria-pressed="false">聲音</button>
     <button id="btnHelp">玩法</button>
   </div>
@@ -129,6 +131,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
       <li>配置照學校的校區平面圖排列，建築是簡化的模型</li>
       <li>校園裡有穿制服、運動服、黑色班 T 的同學在走動、跑步、打球；仔細找找，還有幾個意想不到的人</li>
       <li>東邊圍牆外的舊鐵道，偶爾會有火車經過；右上角可以打開聲音</li>
+      <li>校園會跟著現在的時間變成白天或晚上，上學時間（08:00–17:00）才會看到很多同學；右上角「時間」可以切換早上、中午、黃昏、夜晚</li>
       <li>你會站在公園北路的大門外，往前走就進校園了</li>
     </ul>
     <button id="go">開始走走</button>
@@ -939,22 +942,27 @@ function rectWindow(x,y,z,w,h,rotY=0){
     });
     footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#eeebe5'});
   })();
-  // 西側粉紅面磚連接棟：連起前後棟，南端圓弧陽台、頂樓花架、入口台階；東面白牆圓窗
+  // 英文科・社會科辦公室：下大上小。一樓（英文科）較大，二樓（社會科）退縮，屋頂露台有鋼構花架
   (function(){
-    const r=R(114,312,142,400), H=12, roofM=mat(0x9c968c);
-    const pk=n=>facadeMat(STYLES.pinkplain,n,3);
-    const m=shadowy(new T.Mesh(new T.BoxGeometry(r.w,H,r.d),[pk(r.d),pk(r.d),roofM,roofM,pk(r.w),pk(r.w)]));
-    m.position.set(r.x,H/2,r.z); scene.add(m); occluders.push(m); addCollider(r.x,r.z,r.w,r.d);
-    const base=new T.Mesh(new T.BoxGeometry(0.1,3.6,r.d),texMat('redbrickB',r.d/3,1,64,64,(g)=>brickCanvas(g,64,64,'#a8432f','#8f3a27',4,12))); base.position.set(r.x+r.w/2+0.06,1.8,r.z); scene.add(base);
-    const par=shadowy(new T.Mesh(new T.BoxGeometry(r.w+0.6,0.9,r.d+0.6),mat(0xe9cfc8))); par.position.set(r.x,H+0.45,r.z); scene.add(par);
+    const r=R(112,370,144,404), roofM=mat(0x9c968c), pk=(n,f)=>facadeMat(STYLES.pinkplain,n,f);
+    const H1=4.6, gray=mat(0xc9c4ba);
+    const lo=shadowy(new T.Mesh(new T.BoxGeometry(r.w,H1,r.d),[pk(r.d,1),pk(r.d,1),roofM,roofM,pk(r.w,1),pk(r.w,1)])); lo.position.set(r.x,H1/2,r.z); scene.add(lo); occluders.push(lo); addCollider(r.x,r.z,r.w,r.d);
+    const sl=shadowy(new T.Mesh(new T.BoxGeometry(r.w+0.6,0.5,r.d+0.6),gray)); sl.position.set(r.x,H1+0.25,r.z); scene.add(sl);
+    const pr=new T.Mesh(new T.BoxGeometry(r.w+0.6,1.1,r.d+0.6),pk(r.w,1)); pr.position.set(r.x,H1+1,r.z); pr.scale.set(1,1,1); scene.add(pr);
+    // 二樓退縮（靠北、靠西）
+    const u=R(112,370,134,392), H2=4.2;
+    const up=shadowy(new T.Mesh(new T.BoxGeometry(u.w,H2,u.d),[pk(u.d,1),pk(u.d,1),roofM,roofM,pk(u.w,1),pk(u.w,1)])); up.position.set(u.x,H1+0.5+H2/2,u.z); scene.add(up); occluders.push(up);
+    const up2=shadowy(new T.Mesh(new T.BoxGeometry(u.w+0.4,0.5,u.d+0.4),gray)); up2.position.set(u.x,H1+0.5+H2+0.25,u.z); scene.add(up2);
+    // 屋頂露台鋼構花架
+    const steel=mat(0x7d7a74);
+    for(let i=0;i<10;i++){ const b=new T.Mesh(new T.BoxGeometry(0.18,0.25,r.d*0.55),steel); b.position.set(r.x+r.w*0.05+i*(r.w*0.45/9),H1+0.5+3.4,r.z+r.d*0.18); scene.add(b); }
+    [[0.05,0],[0.5,0],[0.05,0.42],[0.5,0.42]].forEach(([fx,fz])=>{ const pst=new T.Mesh(new T.BoxGeometry(0.2,3.2,0.2),steel); pst.position.set(r.x+r.w*fx,H1+0.5+1.6,r.z-r.d*0.08+fz*r.d); scene.add(pst); });
+    // 一樓入口雨庇與台階（朝東南，面對紫卿亭）
     const fz=r.z+r.d/2;
-    const bal=shadowy(new T.Mesh(new T.CylinderGeometry(4.2,4.2,1.3,24,1,false,-Math.PI/2,Math.PI),mat(0xe9cfc8))); bal.position.set(r.x-2,4.65,fz); scene.add(bal);
-    const bslab=new T.Mesh(new T.CylinderGeometry(4.2,4.2,0.3,24,1,false,-Math.PI/2,Math.PI),mat(0xd9d4cc)); bslab.position.set(r.x-2,4,fz); scene.add(bslab);
-    const can=new T.Mesh(new T.BoxGeometry(6,0.15,3),new T.MeshStandardMaterial({color:0xcfd8d4,transparent:true,opacity:0.6})); can.position.set(r.x+3,8.4,fz+1.4); can.rotation.x=0.2; scene.add(can);
-    for(let i=0;i<10;i++){ const sl=new T.Mesh(new T.BoxGeometry(0.2,0.25,8),mat(0x9a9a96)); sl.position.set(r.x-r.w/2+1+i*(r.w-2)/9,H+2,fz-3); scene.add(sl); }
-    [-1,1].forEach(s2=>{ const post=new T.Mesh(new T.BoxGeometry(0.25,2,0.25),mat(0x9a9a96)); post.position.set(r.x+s2*(r.w/2-1),H+1,fz+0.8); scene.add(post); });
-    const door=new T.Mesh(new T.PlaneGeometry(2.6,3),mat(0x3a3330)); door.position.set(r.x+3.5,1.5,fz+0.03); scene.add(door);
-    for(let i=0;i<3;i++){ const st=shadowy(new T.Mesh(new T.BoxGeometry(5,0.3*(3-i),0.9),mat(0xc9c5bd))); st.position.set(r.x+3.5,0.15*(3-i),fz+0.45+i*0.9); scene.add(st); }
+    const can=shadowy(new T.Mesh(new T.BoxGeometry(6,0.4,3),gray)); can.position.set(r.x+r.w/2-4,H1-0.4,fz+1.5); scene.add(can);
+    [r.x+r.w/2-6.6,r.x+r.w/2-1.4].forEach(x=>{ const c=shadowy(new T.Mesh(new T.BoxGeometry(0.7,H1-0.6,0.7),pk(1,1))); c.position.set(x,(H1-0.6)/2,fz+2.6); scene.add(c); addCollider(x,fz+2.6,0.7,0.7); });
+    for(let i=0;i<3;i++){ const st=shadowy(new T.Mesh(new T.BoxGeometry(6,0.17*(3-i),0.5),mat(0xa9a59e))); st.position.set(r.x+r.w/2-4,0.085*(3-i),fz+0.25+i*0.5); scene.add(st); }
+    const door=new T.Mesh(new T.PlaneGeometry(2.2,2.6),mat(0x5a5048)); door.position.set(r.x+r.w/2-4,1.3,fz+0.03); scene.add(door);
     footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#d9938c'});
   })();
   // 仁愛樓前棟南側：紅磚廣場、台階、枯木雕塑
@@ -979,6 +987,7 @@ function rectWindow(x,y,z,w,h,rotY=0){
     footprints.push({x:tx,z:tz,w:8.4,d:5.2,c:'#b9b5ad',round:true});
   })();
   // 紫卿亭：八角涼亭
+  const zq0=scene.children.length, zqc0=colliders.length;
   (function(){
     const x=X(163), z=Z(402), stone=mat(0xb8a296);
     [[6,0],[5.2,0.35],[4.4,0.7]].forEach(([rr,y])=>{ const t=shadowy(new T.Mesh(new T.CylinderGeometry(rr,rr,0.35,40),stone)); t.position.set(x,y+0.175,z); scene.add(t); });
@@ -992,7 +1001,10 @@ function rectWindow(x,y,z,w,h,rotY=0){
     const fin2=new T.Mesh(new T.CylinderGeometry(0.08,0.2,0.8,8),mat(0x5a8a4c)); fin2.position.set(x,7.1,z); scene.add(fin2);
     const table=new T.Mesh(new T.CylinderGeometry(1,1,0.15,12),mat(0xd9d4cc)); table.position.set(x,1.85,z); scene.add(table);
     const leg=new T.Mesh(new T.CylinderGeometry(0.3,0.4,0.8,10),mat(0xd9d4cc)); leg.position.set(x,1.45,z); scene.add(leg);
-    footprints.push({x,z,w:12,d:12,c:'#5a8a4c',round:true});
+    const k=0.62;
+    scene.children.slice(zq0).forEach(o=>{ o.position.x=x+(o.position.x-x)*k; o.position.z=z+(o.position.z-z)*k; o.position.y*=k; o.scale.multiplyScalar(k); });
+    colliders.slice(zqc0).forEach(c=>{ const cx=(c.minX+c.maxX)/2, cz=(c.minZ+c.maxZ)/2, hw=(c.maxX-c.minX)/2*k, hd=(c.maxZ-c.minZ)/2*k, nx=x+(cx-x)*k, nz=z+(cz-z)*k; c.minX=nx-hw; c.maxX=nx+hw; c.minZ=nz-hd; c.maxZ=nz+hd; });
+    footprints.push({x,z,w:12*k,d:12*k,c:'#5a8a4c',round:true});
   })();
   // 仁愛樓中庭：綠色金屬雕塑
   (function(){
@@ -1007,25 +1019,31 @@ function rectWindow(x,y,z,w,h,rotY=0){
 })();
 
 // K館、圖書館、勤學樓（兩棟分開，2F 與 3F 天橋相連）、科學館
-// K館：獨立的粉紅面磚三層樓，正面朝東：南端柱子門廊＋台階，二樓露台綠色遮陽棚
+// K館：紅磚，比英文科社會科辦公室稍大。一、二樓大，三樓退縮；左側門廊＋台階，二樓露台綠色遮陽棚
 (function(){
-  const r=R(176,420,207,470), H=12, ex=r.x+r.w/2;
-  block(r.x,r.z,r.w,r.d,H,'kgym',0x9c968c,{floors:3,mapColor:'#c4736b'});
-  const pz=r.z+r.d/2-5;
-  const slab=shadowy(new T.Mesh(new T.BoxGeometry(4.5,0.6,10),mat(0xd9d2c8))); slab.position.set(ex+2.25,4.5,pz); scene.add(slab);
-  const slab2=shadowy(new T.Mesh(new T.BoxGeometry(4.5,1.2,10),texMat('kgymBand',2,0.5,64,64,STYLES.kgym.draw))); slab2.position.set(ex+2.25,5.4,pz); scene.add(slab2);
-  [pz-4.6,pz+4.6].forEach(z=>{ const c=shadowy(new T.Mesh(new T.BoxGeometry(0.8,4.2,0.8),mat(0xb8635c))); c.position.set(ex+4,2.1,z); scene.add(c); addCollider(ex+4,z,0.8,0.8); });
-  for(let i=0;i<4;i++){ const st=shadowy(new T.Mesh(new T.BoxGeometry(0.9,0.28*(4-i),9),mat(0xa8564f))); st.position.set(ex+4.9+i*0.9,0.14*(4-i),pz); scene.add(st); }
+  const r=R(180,430,206,466), roofM=mat(0x9c968c), K=(n,f)=>facadeMat(STYLES.kgym,n,f), gray=mat(0xcfc8bc);
+  const H1=8.6;
+  const lo=shadowy(new T.Mesh(new T.BoxGeometry(r.w,H1,r.d),[K(r.d,2),K(r.d,2),roofM,roofM,K(r.w,2),K(r.w,2)])); lo.position.set(r.x,H1/2,r.z); scene.add(lo); occluders.push(lo); addCollider(r.x,r.z,r.w,r.d);
+  [4.3,H1].forEach(y=>{ const b=shadowy(new T.Mesh(new T.BoxGeometry(r.w+1.6,0.5,r.d+1.6),gray)); b.position.set(r.x,y,r.z); scene.add(b); });
+  const par=new T.Mesh(new T.BoxGeometry(r.w+0.4,1,r.d+0.4),K(r.w,1)); par.position.set(r.x,H1+0.75,r.z); scene.add(par);
+  const u=R(180,436,200,466), H2=3.8;
+  const up=shadowy(new T.Mesh(new T.BoxGeometry(u.w,H2,u.d),[K(u.d,1),K(u.d,1),roofM,roofM,K(u.w,1),K(u.w,1)])); up.position.set(u.x,H1+0.25+H2/2,u.z); scene.add(up); occluders.push(up);
+  const up2=new T.Mesh(new T.BoxGeometry(u.w+0.4,0.5,u.d+0.4),gray); up2.position.set(u.x,H1+0.25+H2+0.25,u.z); scene.add(up2);
+  // 二樓露台綠色遮陽棚
   const green=new T.MeshStandardMaterial({color:0x4fb59a,transparent:true,opacity:0.6,roughness:0.3,side:T.DoubleSide});
-  const c1=new T.Mesh(new T.PlaneGeometry(5,10),green); c1.rotation.x=-Math.PI/2; c1.rotation.y=-0.22; c1.position.set(ex+2.4,9.6,pz); scene.add(c1);
-  const c2=new T.Mesh(new T.PlaneGeometry(2.2,r.d-11),green); c2.rotation.x=-Math.PI/2; c2.rotation.y=-0.2; c2.position.set(ex+1.1,8.6,r.z-5.5); scene.add(c2);
-  for(let i=0;i<5;i++){ const post=new T.Mesh(new T.BoxGeometry(0.12,2.6,0.12),mat(0xdedad2)); post.position.set(ex+4.6,7.6,pz-4.8+i*2.4); scene.add(post); }
-  const rail=new T.Mesh(new T.BoxGeometry(0.15,0.9,10),mat(0xd9d2c8)); rail.position.set(ex+4.4,6.4,pz); scene.add(rail);
-  footprints.push({x:ex+2.25,z:pz,w:4.5,d:10,c:'#c4736b'});
+  const can=new T.Mesh(new T.PlaneGeometry(4.4,r.d),green); can.rotation.x=-Math.PI/2; can.rotation.y=-0.2; can.position.set(r.x+r.w/2-2.2,H1+3.2,r.z); scene.add(can);
+  for(let i=0;i<5;i++){ const post=new T.Mesh(new T.BoxGeometry(0.12,3,0.12),mat(0xdedad2)); post.position.set(r.x+r.w/2-0.2,H1+1.6,r.z-r.d/2+0.5+i*(r.d-1)/4); scene.add(post); }
+  // 一樓左側（南端）門廊與台階，朝東
+  const ex=r.x+r.w/2, pz=r.z+r.d/2-5;
+  const pc=shadowy(new T.Mesh(new T.BoxGeometry(4,0.6,9),gray)); pc.position.set(ex+2,4.3,pz); scene.add(pc);
+  [pz-4.2,pz+4.2].forEach(z=>{ const c=shadowy(new T.Mesh(new T.BoxGeometry(0.8,4,0.8),mat(0xb8635c))); c.position.set(ex+3.6,2,z); scene.add(c); addCollider(ex+3.6,z,0.8,0.8); });
+  for(let i=0;i<4;i++){ const st=shadowy(new T.Mesh(new T.BoxGeometry(0.9,0.28*(4-i),8),mat(0xa8564f))); st.position.set(ex+0.45+i*0.9,0.14*(4-i),pz); scene.add(st); }
+  const door=new T.Mesh(new T.PlaneGeometry(3.6,3),mat(0x4a4038)); door.position.set(ex+0.03,1.5,pz); door.rotation.y=Math.PI/2; scene.add(door);
+  footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#c4736b'});
 })();
 // 圖書館：白色、2F–3F 木色橫向格柵、正面朝東
 (function(){
-  const r=R(235,430,275,515), ex=r.x+r.w/2, white=mat(0xf2f0eb);
+  const r=R(235,462,275,515), ex=r.x+r.w/2, white=mat(0xf2f0eb);
   const LIBBASE=(g)=>{ g.fillStyle='#f2f0eb'; g.fillRect(0,0,64,64); g.fillStyle='#7cc4c0'; g.fillRect(6,14,24,40); g.fillStyle='#dfe8e8'; g.fillRect(34,14,24,40); g.fillStyle='#f2f0eb'; g.fillRect(17,14,2,40); g.fillRect(45,14,2,40); g.fillRect(6,32,52,2); };
   const LOUVER=(g)=>{ g.fillStyle='#3e4448'; g.fillRect(0,0,64,64); for(let y=2;y<64;y+=8){ g.fillStyle='#c9a978'; g.fillRect(0,y,64,4); g.fillStyle='#a8875a'; g.fillRect(0,y+4,64,1); } };
   const LIBTOP=(g)=>{ g.fillStyle='#f2f0eb'; g.fillRect(0,0,64,64); g.fillStyle='#55636a'; g.fillRect(8,10,48,38); g.fillStyle='#f2f0eb'; g.fillRect(30,10,4,38); g.fillStyle='#cfd2d0'; g.fillRect(8,40,48,2); };
@@ -1048,12 +1066,12 @@ function rectWindow(x,y,z,w,h,rotY=0){
 })();
 // 勤學樓：粉紅面磚、頂樓圓拱窗、一樓騎樓
 (function(){
-  const r=R(290,430,372,452);
-  const ls=facadeMat(STYLES.pinkplain,r.w,3), le=facadeMat(STYLES.pinkplain,r.d,3), roofM=mat(0x9c968c);
-  const low=shadowy(new T.Mesh(new T.BoxGeometry(r.w,12,r.d),[le,le,roofM,roofM,ls,ls])); low.position.set(r.x,6,r.z); scene.add(low); occluders.push(low);
+  const r=R(240,430,372,452);
+  const ls=facadeMat(STYLES.pinkplain,r.w,2), le=facadeMat(STYLES.pinkplain,r.d,2), roofM=mat(0x9c968c);
+  const low=shadowy(new T.Mesh(new T.BoxGeometry(r.w,8,r.d),[le,le,roofM,roofM,ls,ls])); low.position.set(r.x,4,r.z); scene.add(low); occluders.push(low);
   const us=facadeMat(STYLES.pinkarch,r.w,1), ue=facadeMat(STYLES.pinkarch,r.d,1);
-  const up=shadowy(new T.Mesh(new T.BoxGeometry(r.w,4,r.d),[ue,ue,roofM,roofM,us,us])); up.position.set(r.x,14,r.z); scene.add(up); occluders.push(up);
-  const par=shadowy(new T.Mesh(new T.BoxGeometry(r.w+0.6,0.8,r.d+0.6),mat(0xe7c8c0))); par.position.set(r.x,16.4,r.z); scene.add(par);
+  const up=shadowy(new T.Mesh(new T.BoxGeometry(r.w,4,r.d),[ue,ue,roofM,roofM,us,us])); up.position.set(r.x,10,r.z); scene.add(up); occluders.push(up);
+  const par=shadowy(new T.Mesh(new T.BoxGeometry(r.w+0.6,0.8,r.d+0.6),mat(0xe7c8c0))); par.position.set(r.x,12.4,r.z); scene.add(par);
   const fz=r.z+r.d/2;
   const slab=shadowy(new T.Mesh(new T.BoxGeometry(r.w,0.6,3.8),mat(0xe7c8c0))); slab.position.set(r.x,4.3,fz+1.9); scene.add(slab);
   const n=Math.round(r.w/4.4);
@@ -1088,15 +1106,16 @@ function rectWindow(x,y,z,w,h,rotY=0){
 })();
 (function(){
   // 圖書館 ↔ 勤學樓：一、二、三樓都有走廊相連（白色樓板、藍綠色飾帶、白欄杆）
-  const b=R(275,432,290,449), white=mat(0xf3f1ec), teal=mat(0x4f9a9a), rail=mat(0xe6e6e3);
+  // 走廊從圖書館北面往北接到勤學樓（南北向）
+  const b=R(247,451,265,463), white=mat(0xf3f1ec), teal=mat(0x4f9a9a), rail=mat(0xe6e6e3);
   [0,4,8].forEach((y0,lv)=>{
     if(lv>0){ const deck=shadowy(new T.Mesh(new T.BoxGeometry(b.w,0.4,b.d),white)); deck.position.set(b.x,y0,b.z); scene.add(deck); }
-    const roof=shadowy(new T.Mesh(new T.BoxGeometry(b.w+0.4,0.45,b.d+0.6),white)); roof.position.set(b.x,y0+3.7,b.z); scene.add(roof);
-    const band=new T.Mesh(new T.BoxGeometry(b.w+0.42,0.3,b.d+0.62),teal); band.position.set(b.x,y0+3.4,b.z); scene.add(band);
-    [-1,1].forEach(s2=>{ const z=b.z+s2*(b.d/2-0.1);
-      const rl=new T.Mesh(new T.BoxGeometry(b.w,0.08,0.1),rail); rl.position.set(b.x,y0+1.1,z); scene.add(rl);
-      for(let k=0;k<=b.w;k+=0.6){ const v=new T.Mesh(new T.BoxGeometry(0.05,1.1,0.05),rail); v.position.set(b.x-b.w/2+k,y0+0.55+(lv?0.2:0),z); if(lv) scene.add(v); }
-      const gl=new T.Mesh(new T.PlaneGeometry(b.w,1.6),new T.MeshStandardMaterial({color:0x9fd0d0,transparent:true,opacity:0.35,side:T.DoubleSide})); gl.position.set(b.x,y0+2.4,z); scene.add(gl);
+    const roof=shadowy(new T.Mesh(new T.BoxGeometry(b.w+0.6,0.45,b.d+0.4),white)); roof.position.set(b.x,y0+3.7,b.z); scene.add(roof);
+    const band=new T.Mesh(new T.BoxGeometry(b.w+0.62,0.3,b.d+0.42),teal); band.position.set(b.x,y0+3.4,b.z); scene.add(band);
+    [-1,1].forEach(s2=>{ const x=b.x+s2*(b.w/2-0.1);
+      if(lv){ const rl=new T.Mesh(new T.BoxGeometry(0.1,0.08,b.d),rail); rl.position.set(x,y0+1.3,b.z); scene.add(rl);
+        for(let k=0;k<=b.d;k+=0.6){ const v=new T.Mesh(new T.BoxGeometry(0.05,1.1,0.05),rail); v.position.set(x,y0+0.75,b.z-b.d/2+k); scene.add(v); } }
+      const gl=new T.Mesh(new T.PlaneGeometry(b.d,1.6),new T.MeshStandardMaterial({color:0x9fd0d0,transparent:true,opacity:0.35,side:T.DoubleSide})); gl.position.set(x,y0+2.4,b.z); gl.rotation.y=Math.PI/2; scene.add(gl);
     });
   });
   [-1,1].forEach(sx=>[-1,1].forEach(sz=>{ const px=b.x+sx*(b.w/2-0.3), pz=b.z+sz*(b.d/2-0.3);
@@ -1105,8 +1124,8 @@ function rectWindow(x,y,z,w,h,rotY=0){
   footprints.push({x:b.x,z:b.z,w:b.w,d:b.d,c:'#4f9a9a'});
 })();
 (function(){
-  const c = shadowy(new T.Mesh(new T.CylinderGeometry(11,11,16,28), mat(0xf1eee8))); c.position.set(X(382),8,Z(446)); scene.add(c); occluders.push(c);
-  [4,8,12,16].forEach(y=>{ const ring=new T.Mesh(new T.CylinderGeometry(11.6,11.6,1,28),mat(0xc98a74)); ring.position.set(X(382),y,Z(446)); scene.add(ring); });
+  const c = shadowy(new T.Mesh(new T.CylinderGeometry(11,11,8,28), mat(0xf1eee8))); c.position.set(X(382),4,Z(446)); scene.add(c); occluders.push(c);
+  [4,8].forEach(y=>{ const ring=new T.Mesh(new T.CylinderGeometry(11.6,11.6,1,28),mat(0xc98a74)); ring.position.set(X(382),y,Z(446)); scene.add(ring); });
   addCollider(X(382),Z(446),20,20);
   footprints.push({x:X(382),z:Z(446),w:22,d:22,c:'#f1eee8',round:true});
 })();
@@ -1807,7 +1826,7 @@ const balls = [];
 // 驚喜：女僕娃娃（噴泉邊轉圈、紫卿亭前鞠躬、美食廣場招呼）
 // 女僕娃娃：不定時在校園各處隨機出現、消失
 const MAID_SPOTS=[[625,578],[186,412],[357,486],[214,420],[592,404],[290,500],[488,214],[476,350],[694,382],[530,500],[550,220],[420,592],[320,166],[240,330],[686,348],[430,470]];
-const maids=[0,1,2].map(()=>{ const s=addStudent('twirl',true,'maid',{}); s.mesh.position.set(-9999,0,-9999); s.mesh.visible=false; s.timer=3+Math.random()*12; return s; });
+const maids=[0,1,2].map(()=>{ const s=addStudent('twirl',true,'maid',{}); s.isMaid=true; s.mesh.position.set(-9999,0,-9999); s.mesh.visible=false; s.timer=3+Math.random()*12; return s; });
 function updateMaids(dt){
   maids.forEach(m=>{ m.timer-=dt; if(m.timer>0) return;
     if(m.mesh.visible && Math.random()<0.5){ m.mesh.visible=false; m.mesh.position.set(-9999,0,-9999); m.timer=10+Math.random()*25; return; }
@@ -1816,11 +1835,15 @@ function updateMaids(dt){
     m.spot=pick; m.type=Math.random()<0.5?'twirl':'bow'; m.mesh.rotation.set(0,Math.random()*6.28,0);
     m.mesh.position.set(X(pick[0])+(Math.random()-0.5)*2,0,Z(pick[1])+(Math.random()-0.5)*2); m.mesh.visible=true; m.timer=15+Math.random()*25; });
 }
+students.forEach((s,i)=>{ s.rank=((i*0.6180339)%1); });
+let studentFrac=1;
 function faceTo(m, dx, dz, dt, k=8){ let d=Math.atan2(dx,dz)-m.rotation.y; d=Math.atan2(Math.sin(d),Math.cos(d)); m.rotation.y+=d*Math.min(1,dt*k); }
 const tmpV = new T.Vector3();
 function updateStudents(dt, t){
   for(const s of students){
     const m=s.mesh;
+    if(!s.isMaid){ const show=s.rank<studentFrac; if(m.visible!==show) m.visible=show; }
+    if(!m.visible) continue;
     if(s.type==='walk'){
       if(s.wait>0){ s.wait-=dt; animateStudent(s,false,0,t); continue; }
       const tgt=s.pts[s.idx]; tmpV.subVectors(tgt,m.position); tmpV.y=0;
@@ -1856,6 +1879,7 @@ function updateStudents(dt, t){
     if(dd<1.5 && dd>0.001){ player.position.x=m.position.x+dx/dd*1.5; player.position.z=m.position.z+dz/dd*1.5; }
   }
   for(const b of balls){
+    b.mesh.visible = b.team.some(p=>p.mesh.visible); if(!b.mesh.visible) continue;
     b.t+=dt;
     if(b.t>1.6){ b.t=0; b.holder=(b.holder+1+Math.floor(Math.random()*(b.team.length-1)))%b.team.length; }
     const h=b.team[b.holder].mesh;
@@ -1971,6 +1995,61 @@ function updateTrains(dt){
   const done = tr.userData.dir>0 ? tr.position.z-tr.userData.len>Z(930) : tr.position.z+tr.userData.len<Z(-430);
   if(done){ tr.visible=false; trainActive=null; trainWait=25+Math.random()*35; }
 }
+/* ---------- 日夜：跟著現在時間，或手動切換 ---------- */
+const DAY_KEYS=[ // 時, 天頂, 中段, 地平線, 霧, 曝光
+  [0,  0x0b1530,0x16264a,0x2b3556,0x1a2440,0.7],
+  [5,  0x0b1530,0x16264a,0x2b3556,0x1a2440,0.7],
+  [6,  0x3d5a8a,0xc9a7a0,0xf2a46a,0xd9a98a,0.86],
+  [8,  0x6fa3d6,0xb5d1e6,0xe9d6b8,0xdccfb8,0.9 ],
+  [12, 0x4f8fd6,0xa6cbe8,0xdfe6e8,0xd6dde0,0.9 ],
+  [16, 0x5f97d0,0xa9c9e2,0xeec39a,0xe6c9a8,0.88],
+  [17.5,0x41639a,0xe0a37a,0xf58a4e,0xe0a080,0.9],
+  [18.5,0x1c2a52,0x5a4a6e,0xb0605a,0x6a5060,0.82],
+  [19.5,0x0b1530,0x16264a,0x2b3556,0x1a2440,0.7],
+  [24, 0x0b1530,0x16264a,0x2b3556,0x1a2440,0.7]];
+const lin=h=>new T.Color(h).convertSRGBToLinear();
+const DK=DAY_KEYS.map(k=>({h:k[0],top:lin(k[1]),mid:lin(k[2]),bot:lin(k[3]),fog:lin(k[4]),exp:k[5]}));
+const TIME_MODES=[['現在',null],['早上',7.6],['中午',12.3],['黃昏',17.6],['夜晚',20.5]];
+let timeMode=0;
+const stars=(function(){ const n=700, pos=new Float32Array(n*3);
+  for(let i=0;i<n;i++){ const u=Math.random(), v=Math.random()*0.9+0.08, th=u*Math.PI*2, ph=Math.acos(v); pos[i*3]=Math.sin(ph)*Math.cos(th)*850; pos[i*3+1]=Math.cos(ph)*850; pos[i*3+2]=Math.sin(ph)*Math.sin(th)*850; }
+  const g=new T.BufferGeometry(); g.setAttribute('position',new T.BufferAttribute(pos,3));
+  const m=new T.PointsMaterial({color:0xffffff,size:2.2,sizeAttenuation:false,transparent:true,opacity:0,depthWrite:false,fog:false});
+  const p=new T.Points(g,m); p.userData.keepColor=true; p.renderOrder=-1; scene.add(p); return p; })();
+const moon=new T.Mesh(new T.SphereGeometry(14,20,14),new T.MeshBasicMaterial({color:0xfff6dc,fog:false,transparent:true,opacity:0})); moon.userData.keepColor=true; scene.add(moon);
+// 夜間路燈光（大門、噴泉、中央大道、公園入口、舊校門）
+const nightLights=[[425,612],[603,580],[575,410]].map(([px,py])=>{ const l=new T.PointLight(0xffc98a,0,38,1.6); l.position.set(X(px),6,Z(py)); scene.add(l); return l; });
+let glowMats=[];
+function hourNow(){ const d=new Date(); return d.getHours()+d.getMinutes()/60; }
+function curHour(){ const m=TIME_MODES[timeMode]; return m[1]==null ? hourNow() : m[1]; }
+const _c=new T.Color();
+function applyTime(h){
+  let a=DK[0], b=DK[DK.length-1];
+  for(let i=0;i<DK.length-1;i++){ if(h>=DK[i].h && h<=DK[i+1].h){ a=DK[i]; b=DK[i+1]; break; } }
+  const f=(h-a.h)/Math.max(0.001,b.h-a.h);
+  const U=skyDome.material.uniforms;
+  U.top.value.copy(a.top).lerp(b.top,f); U.mid.value.copy(a.mid).lerp(b.mid,f); U.bot.value.copy(a.bot).lerp(b.bot,f);
+  scene.fog.color.copy(a.fog).lerp(b.fog,f); scene.background.copy(scene.fog.color);
+  renderer.toneMappingExposure = a.exp+(b.exp-a.exp)*f;
+  const t=(h-6)/12*Math.PI, alt=Math.sin(t), day=Math.max(0,Math.min(1,alt*1.8+0.15));
+  const night=1-Math.max(0,Math.min(1,(alt+0.12)*4));
+  sun.intensity=1.65*Math.max(0,Math.min(1,alt*1.6));
+  _c.setHex(0xff9a5a).convertSRGBToLinear(); sun.color.copy(_c).lerp(lin(0xfff0d8),Math.max(0,Math.min(1,alt*1.4)));
+  window.__sunOff=[Math.cos(t)*170, Math.max(alt,0.06)*170+20, 70];
+  hemi.intensity=0.16+0.51*day; hemi.color.copy(lin(0x9fb4e0)).lerp(lin(0xfff0dc),day);
+  fill.intensity=0.18*(1-night)+0.3*night; fill.color.copy(lin(0x8fa8e0));
+  stars.material.opacity=night*0.9; moon.material.opacity=night;
+  nightLights.forEach(l=>l.intensity=night*3);
+  glowMats.forEach(g=>g.m.emissiveIntensity=g.base*(1+night*3.5));
+  const warm=document.getElementById('warm'); if(warm) warm.style.opacity=String(1+night*0.8);
+  // 學生：08:00–17:00 全部；早上到校、放學陸續離開；晚上幾乎沒人
+  let fr;
+  if(h<6.5) fr=0; else if(h<7.5) fr=(h-6.5)*0.35; else if(h<8) fr=0.35+(h-7.5)*1.3; else if(h<=17) fr=1;
+  else if(h<18) fr=1-(h-17)*0.8; else if(h<21) fr=0.2-(h-18)*0.06; else fr=0;
+  studentFrac=Math.max(0,Math.min(1,fr));
+  const hh=Math.floor(h)%24, mm=Math.floor((h-Math.floor(h))*60);
+  const ce=document.getElementById('clock'); if(ce) ce.textContent=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+(h>=8&&h<17?' 上課中':h>=17&&h<19?' 放學':h<6||h>=19?' 夜晚':' 清晨');
+}
 /* ---------- places (spot/look/label in plan pixels) ---------- */
 const PLACES = [
   {id:'gate', name:'大門', kind:'入口', spot:[425,634], look:[425,600], r:10, lab:[437,11.5,622],
@@ -2069,20 +2148,20 @@ const PLACES = [
   {id:'bridge', name:'仁愛樓連通橋', kind:'仁愛樓', spot:[180,322], look:[158,324], r:6, lab:[158,19,322],
    desc:'從仁愛樓後棟往南伸出去的清水混凝土框架，每層都是開放走廊，最上面是藍色採光罩。南端接著一座白色樓梯塔，牆上三個直排圓窗、側邊是粉紅欄杆的陽台，再過去就是前棟。',
    fact:''},
-  {id:'pinkwing', name:'英文科・社會科辦公室', kind:'仁愛樓', spot:[150,414], look:[128,396], r:7, lab:[128,15,356],
-   desc:'仁愛樓前棟旁邊的粉紅面磚樓，英文科和社會科辦公室都在這裡。頂樓有花架，南端是圓弧陽台，入口有幾階台階；門口前面就是紫卿亭和紅磚廣場。',
+  {id:'pinkwing', name:'英文科・社會科辦公室', kind:'仁愛樓', spot:[150,416], look:[128,388], r:7, lab:[124,15,382],
+   desc:'仁愛樓前棟旁邊的粉紅面磚小樓，下大上小：一樓是英文科辦公室，退縮上去的二樓是社會科辦公室，屋頂露台上有鋼構花架。門口有雨庇和幾階台階，前面就是紫卿亭和紅磚廣場。',
    fact:''},
   {id:'deadtree', name:'枯木', kind:'仁愛樓', spot:[212,414], look:[200,402], r:5, lab:[200,10,402],
    desc:'仁愛樓前棟前面、紅磚廣場上的一截老樹幹，立在橢圓形的石砌花台裡，樹幹上還有一個樹洞。',
    fact:''},
-  {id:'kgym', name:'K 館', kind:'運動', spot:[224,490], look:[196,450], r:9, lab:[191,15,445],
-   desc:'紫卿亭南邊獨立的一棟粉紅面磚三層樓，正面朝東。左邊是有柱子的門廊和台階，二樓露台上搭著綠色遮陽棚。大考時也會當作考生休息區。',
+  {id:'kgym', name:'K 館', kind:'運動', spot:[224,490], look:[196,450], r:9, lab:[193,16,448],
+   desc:'紫卿亭南邊獨立的一棟紅磚樓，比英文科社會科辦公室稍大一點。一、二樓方正，三樓往後退縮；左邊是有柱子的門廊和台階，二樓露台搭著綠色遮陽棚。',
    fact:''},
   {id:'library', name:'圖書館', kind:'學習', spot:[284,482], look:[262,476], r:9, lab:[255,22,472],
-   desc:'白色的四層樓，二、三樓外面包著一圈木色橫向格柵，一樓寫著 Library，頂樓牆上是「圖書館」三個字。正門面向紅磚廣場；旁邊和勤學樓之間，一、二、三樓都有走廊相連，白色樓板配藍綠色飾帶。',
+   desc:'白色的四層樓，二、三樓外面包著一圈木色橫向格柵，一樓寫著 Library，頂樓牆上是「圖書館」三個字。正門面向紅磚廣場；北面和勤學樓之間，一、二、三樓都有走廊相連，白色樓板配藍綠色飾帶。',
    fact:''},
   {id:'qinxue', name:'勤學樓', kind:'教學大樓', spot:[350,494], look:[350,445], r:12, lab:[331,20,441],
-   desc:'粉紅色面磚的大樓，最上層是一排圓拱窗，一樓是有柱子的騎樓。西邊和圖書館之間用一、二、三樓的走廊連起來，東端是白色的圓形建築，前面是一大片紅磚廣場。',
+   desc:'粉紅色面磚的三層樓，最上層是一排圓拱窗，一樓是有柱子的騎樓。西段南邊接著圖書館，一、二、三樓都有走廊相連，東端是白色的圓形建築，前面是一大片紅磚廣場。',
    fact:''},
   {id:'food', name:'美食廣場', kind:'生活', spot:[357,478], look:[357,452], r:7, lab:[357,9,457],
    desc:'勤學樓一樓騎樓的東段，有便當、麵食和飲料店，騎樓下擺著桌椅。中午下課鐘一響，這裡最先排起隊。',
@@ -2180,6 +2259,7 @@ $('btnList').addEventListener('click',()=>setList($('list').hidden));
 $('btnLabel').addEventListener('click',()=>{ labelsOn=!labelsOn; labels.forEach(l=>l.visible=labelsOn); $('btnLabel').setAttribute('aria-pressed',labelsOn?'true':'false'); });
 $('btnHelp').addEventListener('click',()=>{ $('intro').hidden=false; });
 $('go').addEventListener('click',()=>{ $('intro').hidden=true; initAudio(); soundOn=!!audioCtx; $('btnSound').setAttribute('aria-pressed',soundOn?'true':'false'); if(audioCtx&&audioCtx.resume) audioCtx.resume(); });
+$('btnTime').addEventListener('click',()=>{ timeMode=(timeMode+1)%TIME_MODES.length; $('btnTime').textContent='時間：'+TIME_MODES[timeMode][0]; applyTime(curHour()); });
 $('btnSound').addEventListener('click',()=>{ initAudio(); if(audioCtx&&audioCtx.resume) audioCtx.resume(); soundOn=!soundOn && !!audioCtx; $('btnSound').setAttribute('aria-pressed',soundOn?'true':'false'); });
 
 /* ---------- fly to ---------- */
@@ -2289,6 +2369,7 @@ const camTarget = new T.Vector3(), camDir = new T.Vector3(), camSmooth = new T.V
 const ray = new T.Raycaster();
 const YARDS = [R(510,455,568,515), R(582,455,670,515)];
 let walkT = 0, ledFrame = 0;
+let timeTick=0;
 function step(){
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
@@ -2380,7 +2461,9 @@ function step(){
   camera.position.copy(camTarget).add(camSmooth);
   camera.lookAt(camTarget);
   sun.position.set(player.position.x-150, 120, player.position.z+90);
-  skyDome.position.copy(camera.position);
+  skyDome.position.copy(camera.position); stars.position.copy(camera.position);
+  if((timeTick+=dt)>1){ timeTick=0; applyTime(curHour()); }
+  if(window.__sunOff){ const o=window.__sunOff; sun.position.set(player.position.x+o[0], o[1], player.position.z+o[2]); moon.position.set(camera.position.x-o[0]*3.5, Math.max(120,400-o[1]), camera.position.z-260); }
   sun.target.position.set(player.position.x,0,player.position.z); sun.target.updateMatrixWorld();
   for(const l of labels){ const d=camera.position.distanceTo(l.position); l.visible = labelsOn && d>30; l.material.opacity = Math.min(1,(d-30)/16); }
   renderer.render(scene, camera);
@@ -2401,6 +2484,8 @@ Promise.race([
       if(m.map){ m.map.encoding=T.sRGBEncoding; m.map.needsUpdate=true; }
       m.needsUpdate=true; }); });
 })();
+scene.traverse(o=>{ const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[]; ms.forEach(m=>{ if(m&&m.emissive&&m.emissiveIntensity>0&&m.emissive.getHex()!==0&&!glowMats.some(g=>g.m===m)) glowMats.push({m,base:m.emissiveIntensity}); }); });
+applyTime(curHour());
 $('loading').hidden = true;
 requestAnimationFrame(step);
 })();
