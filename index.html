@@ -114,7 +114,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 
 <div id="intro">
   <div class="panel">
-    <div class="k">校園導覽 · 第十二版</div>
+    <div class="k">校園導覽 · 第十四版</div>
     <h2>從公園北路大門，<br>走進南二中。</h2>
     <p>你會站在大門口，面向校園。走近任何一棟建築，下方就會出現它的介紹；走過的地點會蓋上章，右上的清單和小地圖都可以直接傳送過去。</p>
     <ul>
@@ -175,8 +175,11 @@ function plane(w,d,color,x,z,y){
   m.rotation.x = -Math.PI/2; m.position.set(x,y,z); m.receiveShadow = true; scene.add(m); return m;
 }
 function planePx(x1,y1,x2,y2,color,y){ const r=R(x1,y1,x2,y2); return plane(r.w,r.d,color,r.x,r.z,y); }
-function polyMesh(pxPts,color,y){
+const SUNK = {x1:582,y1:455,x2:670,y2:515,depth:3.6};   // 弘道樓右天井：B1 下沉平台（平面圖像素）
+function sunkHole(){ const p=new T.Path(); const a=[[SUNK.x1,SUNK.y1],[SUNK.x1,SUNK.y2],[SUNK.x2,SUNK.y2],[SUNK.x2,SUNK.y1]]; a.forEach((q,i)=>{ const v=[X(q[0]),-Z(q[1])]; i?p.lineTo(v[0],v[1]):p.moveTo(v[0],v[1]); }); p.closePath(); return p; }
+function polyMesh(pxPts,color,y,hole){
   const sh = new T.Shape(pxPts.map(p=>new T.Vector2(X(p[0]),-Z(p[1]))));
+  if(hole) sh.holes.push(sunkHole());
   const g = new T.ShapeGeometry(sh); g.rotateX(-Math.PI/2);
   const m = new T.Mesh(g, mat(color)); m.position.y = y; m.receiveShadow = true; scene.add(m); return m;
 }
@@ -194,7 +197,8 @@ function inPoly(x,z){
 }
 
 /* ---------- surroundings ---------- */
-plane(1400,1400,0x9aa59a,0,0,-0.06);                         // city ground
+(function(){ const sh=new T.Shape([new T.Vector2(-700,-700),new T.Vector2(700,-700),new T.Vector2(700,700),new T.Vector2(-700,700)]); sh.holes.push(sunkHole());
+  const g=new T.ShapeGeometry(sh); g.rotateX(-Math.PI/2); const m=new T.Mesh(g,mat(0x9aa59a)); m.position.y=-0.06; m.receiveShadow=true; scene.add(m); })();   // city ground
 planePx(-400,628,1300,690,0x55524f,0.01);                     // 公園北路
 for(let px=-380; px<1300; px+=24) planePx(px,657,px+12,659,0xf3ecd8,0.03);
 planePx(738,-300,790,628,0x55524f,0.01);                      // 北門路二段
@@ -212,11 +216,11 @@ planePx(-400,690,1300,1300,0x7f9f66,0.0);                     // 臺南公園
 });
 
 /* ---------- campus ground ---------- */
-polyMesh(CAMPUS_PX,0xdcd6ca,0.0);                                         // paving
+polyMesh(CAMPUS_PX,0xdcd6ca,0.0,true);                                         // paving
 polyMesh([[185,48],[178,70],[168,282],[70,282],[42,298]],0x7fa36a,0.02);  // 西北綠帶
 planePx(186,44,632,64,0x7fa36a,0.02);                                     // 北側綠帶
 planePx(192,47,470,60,0xb4a69a,0.025);                                    // 圍牆內側紅磚步道
-planePx(452,392,728,606,0x7fa36a,0.02);                                   // 行政大樓四周綠地
+polyMesh([[452,392],[728,392],[728,606],[452,606]],0x7fa36a,0.02,true);                                   // 行政大樓四周綠地
 planePx(286,386,406,430,0x6f9a5c,0.03);                                   // 勤學樓北側綠地
 planePx(168,178,268,284,0x7fa36a,0.02);                                   // 泳池周圍
 planePx(515,560,642,618,0xd9d1c2,0.035);                                  // 紅樓前廣場
@@ -821,22 +825,46 @@ function rectWindow(x,y,z,w,h,rotY=0){
   const c=document.createElement('canvas'); c.width=200; c.height=260; const g=c.getContext('2d');
   g.fillStyle='#c9a46c'; g.fillRect(0,0,200,260);
   const blob=(pts,col)=>{ g.fillStyle=col; g.beginPath(); pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])); g.closePath(); g.fill(); };
-  blob([[70,10],[180,30],[190,110],[160,170],[190,230],[60,250],[20,180],[40,90]],'#3f6fa8');
-  blob([[90,20],[170,50],[150,90],[100,70]],'#6aa0cf');
-  blob([[120,150],[185,180],[170,240],[110,235]],'#2f5d8f');
+  // 上方：藍色旋渦天空與黑鳥
+  blob([[60,6],[150,0],[195,40],[185,95],[140,110],[95,95],[55,70],[40,30]],'#3f6fa8');
+  blob([[85,10],[140,8],[175,40],[150,70],[110,60]],'#7fb0dc');
+  blob([[120,20],[165,30],[150,55]],'#2c4f86');
+  blob([[78,40],[110,26],[150,34],[118,46],[95,58]],'#3a2f2a');
+  // 中央大樹（左）與樹冠
   g.fillStyle='#4f8a4a'; [[70,120,38],[50,90,26],[95,95,28],[60,155,30]].forEach(a=>{ g.beginPath(); g.arc(a[0],a[1],a[2],0,Math.PI*2); g.fill(); });
+  g.fillStyle='#7fae5a'; [[80,105,14],[48,140,12]].forEach(a=>{ g.beginPath(); g.arc(a[0],a[1],a[2],0,Math.PI*2); g.fill(); });
   g.fillStyle='#6b4a32'; g.fillRect(64,150,12,80);
-  g.fillStyle='#f3efe6'; g.fillRect(115,85,44,22); g.fillStyle='#8a3a2a'; blob([[110,86],[137,66],[164,86]],'#8a3a2a');
+  // 右上紅瓦白屋
+  g.fillStyle='#f3efe6'; g.fillRect(115,85,44,22); blob([[110,86],[137,66],[164,86]],'#8a3a2a');
+  g.fillStyle='#8a3a2a'; for(let x=119;x<157;x+=7) g.fillRect(x,92,3,8);
+  // 右側藍色圓與人物
+  blob([[120,130],[185,140],[190,200],[150,215],[120,190]],'#2f5d8f');
   g.fillStyle='#d9862f'; g.beginPath(); g.arc(150,140,10,0,Math.PI*2); g.fill(); g.fillRect(143,150,14,30);
   g.fillStyle='#e0b24a'; g.beginPath(); g.arc(85,205,9,0,Math.PI*2); g.fill(); g.fillRect(78,214,14,26);
+  g.fillStyle='#c0663a'; g.beginPath(); g.arc(160,215,8,0,Math.PI*2); g.fill(); g.fillRect(154,222,12,26);
+  g.fillStyle='#7a4a8a'; g.beginPath(); g.arc(42,118,8,0,Math.PI*2); g.fill(); g.fillRect(36,125,12,22);
+  // 底部浪花
+  blob([[20,235],[60,225],[100,238],[140,226],[185,236],[195,258],[10,258]],'#3f6fa8');
+  g.strokeStyle='#e9f1f7'; g.lineWidth=3; for(let x=15;x<190;x+=22){ g.beginPath(); g.arc(x,244,8,Math.PI,0); g.stroke(); }
   const mt=new T.CanvasTexture(c);
-  const mural=new T.Mesh(new T.PlaneGeometry(8,10.5),new T.MeshStandardMaterial({map:mt,roughness:0.8}));
+  const mural=new T.Mesh(new T.BoxGeometry(8,10.5,0.3),[mat(0xc9a46c),mat(0xc9a46c),mat(0xc9a46c),mat(0xc9a46c),new T.MeshStandardMaterial({map:mt,bumpMap:mt,bumpScale:3,roughness:0.75}),mat(0xc9a46c)]);
   const tw=R(416,362,442,394), tf=facadeMat(STYLES.tanfin,tw.d,4), tp=texMat('tanplain',tw.w/4,18/4,64,64,(g)=>brickCanvas(g,64,64,'#c9a46c','#b8925c',4,10));
   const twr=shadowy(new T.Mesh(new T.BoxGeometry(tw.w,18,tw.d),[tf,tf,mat(0xcfc7b6),mat(0xcfc7b6),tp,facadeMat(STYLES.tanfin,tw.w,4)]));
   twr.position.set(tw.x,9,tw.z); scene.add(twr); occluders.push(twr); addCollider(tw.x,tw.z,tw.w,tw.d);
   const twc=new T.Mesh(new T.BoxGeometry(tw.w+0.8,0.8,tw.d+0.8),mat(0xe0d8c6)); twc.position.set(tw.x,18.4,tw.z); scene.add(twc);
   footprints.push({x:tw.x,z:tw.z,w:tw.w,d:tw.d,c:'#d8c29a'});
-  mural.position.set(tw.x,9.5,tw.z+tw.d/2+0.04); scene.add(mural);
+  mural.position.set(tw.x,9.5,tw.z+tw.d/2+0.15); scene.add(mural);
+  // 浮雕凸起：樹冠、樹幹、紅瓦房、人物
+  (function(){ const fz=tw.z+tw.d/2+0.3, X0=tw.x-4, Y0=14.75, k=8/200, ky=10.5/260;
+    const at=(u,v)=>[X0+u*k, Y0-v*ky];
+    [[70,120,38],[50,90,26],[95,95,28],[60,155,30]].forEach(([u,v,rr])=>{ const [x,y]=at(u,v); const c=shadowy(new T.Mesh(new T.SphereGeometry(rr*k,14,10),mat(0x4f8a4a))); c.scale.z=0.28; c.position.set(x,y,fz); scene.add(c); });
+    { const [x,y]=at(70,190); const t=new T.Mesh(new T.BoxGeometry(0.5,3.2,0.35),mat(0x6b4a32)); t.position.set(x,y,fz); scene.add(t); }
+    { const [x,y]=at(137,96); const h=new T.Mesh(new T.BoxGeometry(1.7,0.9,0.35),mat(0xf3efe6)); h.position.set(x,y,fz); scene.add(h);
+      const rf=new T.Mesh(new T.ConeGeometry(1.1,0.8,4),mat(0x8a3a2a)); rf.rotation.y=Math.PI/4; rf.scale.z=0.3; rf.position.set(x,y+0.85,fz); scene.add(rf); }
+    [[150,140,0xd9862f],[85,205,0xe0b24a],[160,215,0xc0663a]].forEach(([u,v,col])=>{ const [x,y]=at(u,v);
+      const hd=new T.Mesh(new T.SphereGeometry(0.32,10,8),mat(col)); hd.position.set(x,y+0.6,fz); hd.scale.z=0.5; scene.add(hd);
+      const bd=new T.Mesh(new T.CylinderGeometry(0.3,0.4,1.2,10),mat(col)); bd.position.set(x,y-0.3,fz); bd.scale.z=0.5; scene.add(bd); });
+  })();
 })();
 
 // 仁愛樓：米白牆＋磚紅面磚、開放走廊、屋頂藍色玻璃遮陽棚
@@ -1015,12 +1043,22 @@ function rectWindow(x,y,z,w,h,rotY=0){
   footprints.push({x:r.x,z:r.z,w:r.w,d:r.d+7,c:'#d9938c'});
 })();
 (function(){
-  const b=R(275,434,290,447);
-  [5.4,9.4].forEach(y=>{
-    const fm=facadeMat(STYLES.cream,b.w,1);
-    const m=shadowy(new T.Mesh(new T.BoxGeometry(b.w,2.6,b.d-1),[mat(0xece5d6),mat(0xece5d6),mat(0x9c968c),mat(0xd8d0c0),fm,fm])); m.position.set(b.x,y,b.z); scene.add(m);
+  // 圖書館 ↔ 勤學樓：一、二、三樓都有走廊相連（白色樓板、藍綠色飾帶、白欄杆）
+  const b=R(275,432,290,449), white=mat(0xf3f1ec), teal=mat(0x4f9a9a), rail=mat(0xe6e6e3);
+  [0,4,8].forEach((y0,lv)=>{
+    if(lv>0){ const deck=shadowy(new T.Mesh(new T.BoxGeometry(b.w,0.4,b.d),white)); deck.position.set(b.x,y0,b.z); scene.add(deck); }
+    const roof=shadowy(new T.Mesh(new T.BoxGeometry(b.w+0.4,0.45,b.d+0.6),white)); roof.position.set(b.x,y0+3.7,b.z); scene.add(roof);
+    const band=new T.Mesh(new T.BoxGeometry(b.w+0.42,0.3,b.d+0.62),teal); band.position.set(b.x,y0+3.4,b.z); scene.add(band);
+    [-1,1].forEach(s2=>{ const z=b.z+s2*(b.d/2-0.1);
+      const rl=new T.Mesh(new T.BoxGeometry(b.w,0.08,0.1),rail); rl.position.set(b.x,y0+1.1,z); scene.add(rl);
+      for(let k=0;k<=b.w;k+=0.6){ const v=new T.Mesh(new T.BoxGeometry(0.05,1.1,0.05),rail); v.position.set(b.x-b.w/2+k,y0+0.55+(lv?0.2:0),z); if(lv) scene.add(v); }
+      const gl=new T.Mesh(new T.PlaneGeometry(b.w,1.6),new T.MeshStandardMaterial({color:0x9fd0d0,transparent:true,opacity:0.35,side:T.DoubleSide})); gl.position.set(b.x,y0+2.4,z); scene.add(gl);
+    });
   });
-  footprints.push({x:b.x,z:b.z,w:b.w,d:b.d-1,c:'#ece5d6',flat:true});
+  [-1,1].forEach(sx=>[-1,1].forEach(sz=>{ const px=b.x+sx*(b.w/2-0.3), pz=b.z+sz*(b.d/2-0.3);
+    const c=shadowy(new T.Mesh(new T.BoxGeometry(0.4,12,0.4),white)); c.position.set(px,6,pz); scene.add(c); addCollider(px,pz,0.4,0.4); }));
+  const fl=new T.Mesh(new T.PlaneGeometry(b.w,b.d),mat(0xc9c5bd)); fl.rotation.x=-Math.PI/2; fl.position.set(b.x,0.05,b.z); scene.add(fl);
+  footprints.push({x:b.x,z:b.z,w:b.w,d:b.d,c:'#4f9a9a'});
 })();
 (function(){
   const c = shadowy(new T.Mesh(new T.CylinderGeometry(11,11,16,28), mat(0xf1eee8))); c.position.set(X(382),8,Z(446)); scene.add(c); occluders.push(c);
@@ -1129,15 +1167,18 @@ function rectWindow(x,y,z,w,h,rotY=0){
     }
     const hs=hall(515,545,false), hn=hall(430,455,true);
     // 南穿堂：兩根白色托斯坎柱（薄荷綠柱腳）＋ 通往拱廊的白色拱門
-    [-2.6,2.6].forEach(dx=>{
-      const cz=hs.z+hs.d/2-3;
+    [-4.2,-1.8,1.8,4.2].forEach(dx=>{
+      const cz=hs.z-hs.d/2+3.2;
       const b=shadowy(new T.Mesh(new T.BoxGeometry(1.4,1.1,1.4),mint)); b.position.set(hs.x+dx,0.55,cz); scene.add(b);
       const sb=new T.Mesh(new T.BoxGeometry(1.5,0.25,1.5),stoneB); sb.position.set(hs.x+dx,0.12,cz); scene.add(sb);
       const c=shadowy(new T.Mesh(new T.CylinderGeometry(0.42,0.5,3.8,18),white)); c.position.set(hs.x+dx,1.1+1.9,cz); scene.add(c);
       const cap=new T.Mesh(new T.BoxGeometry(1.2,0.4,1.2),white); cap.position.set(hs.x+dx,5.1,cz); scene.add(cap);
       addCollider(hs.x+dx,cz,1.4,1.4);
     });
-    const beam=new T.Mesh(new T.BoxGeometry(hs.w,0.5,0.8),white); beam.position.set(hs.x,5.25,hs.z+hs.d/2-3); scene.add(beam);
+    const beam=new T.Mesh(new T.BoxGeometry(hs.w,0.5,0.8),white); beam.position.set(hs.x,5.25,hs.z-hs.d/2+3.2); scene.add(beam);
+    const blue=new T.Mesh(new T.PlaneGeometry(1.6,3),mat(0x3d74b8)); blue.position.set(hs.x+hs.w/2-0.14,1.5,hs.z+2); blue.rotation.y=-Math.PI/2; scene.add(blue);
+    const bArch=new T.Mesh(new T.CircleGeometry(0.8,16,0,Math.PI),mat(0xf1eee8)); bArch.position.set(hs.x+hs.w/2-0.13,3,hs.z+2); bArch.rotation.y=-Math.PI/2; scene.add(bArch);
+    const notice=new T.Mesh(new T.PlaneGeometry(1,1.6),mat(0x9a6a3a)); notice.position.set(hs.x+hs.w/2-0.14,2.4,hs.z+4); notice.rotation.y=-Math.PI/2; scene.add(notice);
     arch(hs.x,hs.z-hs.d/2+1.2,4.6,5,0.9,0xf1eee8);
     [-1,1].forEach(s2=>{ const pw=new T.Mesh(new T.BoxGeometry((hs.w-6.4)/2,5.4,0.9),white); pw.position.set(hs.x+s2*(hs.w/2-(hs.w-6.4)/4),2.7,hs.z-hs.d/2+1.2); scene.add(pw); addCollider(hs.x+s2*(hs.w/2-(hs.w-6.4)/4),hs.z-hs.d/2+1.2,(hs.w-6.4)/2,0.9); });
     // 北穿堂：石材拱門出口
@@ -1159,7 +1200,7 @@ function rectWindow(x,y,z,w,h,rotY=0){
     footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#c97a62'});
   });
   planePx(510,455,568,515,0x8f8a84,0.04);   // 左天井（蓮霧樹）
-  planePx(582,455,670,515,0x5f9a78,0.04);   // 右天井（綠色地坪）
+  planePx(582,455,670,515,0x5f9a78,-SUNK.depth+0.02);   // 右天井（B1 綠色地坪）
 
   // 左天井：四層樓高的蓮霧樹
   (function(){
@@ -1196,11 +1237,20 @@ function rectWindow(x,y,z,w,h,rotY=0){
       const pot=new T.Mesh(new T.CylinderGeometry(0.33,0.26,0.45,8),mat(0xa86a4a)); pot.position.set(ax+dx,4.8,pz); scene.add(pot);
       const sh=new T.Mesh(new T.IcosahedronGeometry(0.42,0),leafMs[(i+(dx>0?1:0))%3]); sh.position.set(ax+dx,5.3,pz); scene.add(sh); }); }
     const walk=new T.Mesh(new T.PlaneGeometry(4.6,L),mat(0xb9b4ac)); walk.rotation.x=-Math.PI/2; walk.position.set(ax,0.05,zc); scene.add(walk);
-    // 樓梯：東側南北兩端，往東下到右天井
-    [z1+2.4, z2-2.4].forEach(sz=>{
-      for(let i=0;i<4;i++){ const h=1.05*(4-i); const st=shadowy(new T.Mesh(new T.BoxGeometry(1.1,h,2.4),mat(0xd9d2c4))); st.position.set(ax+4.2+i*1.1,h/2,sz); scene.add(st); }
-      addCollider(ax+5.85,sz,4.4,2.4);
-      const ramp=shadowy(new T.Mesh(new T.BoxGeometry(5,0.22,0.9),mat(0xf3f1ec))); ramp.position.set(ax+5.8,2.6,sz+(sz<zc?1.6:-1.6)); ramp.rotation.z=0.75; scene.add(ramp);
+    // 拱廊東側（右天井）往下一層：紅磚擋土牆、花台；南北兩端樓梯下到 B1 大平台
+    const ex=X(SUNK.x1), D=SUNK.depth, STW=7.2;
+    window.__STAIRS=[z1+2.4, z2-2.4];
+    const rw=shadowy(new T.Mesh(new T.BoxGeometry(0.6,D,L),texMat('retain',L/4,D/4,64,64,(g)=>brickCanvas(g,64,64,'#b5503c','#9a4433',4,12)))); rw.position.set(ex+0.3,-D/2,zc); scene.add(rw);
+    for(let i=0;i<10;i++){ const pz=z1+7+i*(L-14)/9; const pl=shadowy(new T.Mesh(new T.BoxGeometry(1.2,0.9,2.6),mat(0xb5503c))); pl.position.set(ex+1.2,-D+0.45,pz); scene.add(pl);
+      const sh=new T.Mesh(new T.IcosahedronGeometry(0.7,0),leafMs[i%3]); sh.position.set(ex+1.2,-D+1.2,pz); sh.scale.set(0.8,0.6,1.6); scene.add(sh); }
+    const rail=new T.Mesh(new T.BoxGeometry(0.1,1,L-9),mat(0xe0e0de)); rail.position.set(ex+0.2,0.5,zc); scene.add(rail);
+    addCollider(ex+0.3,zc,0.6,L-9);
+    window.__STAIRS.forEach(sz=>{
+      const n=9;
+      for(let i=0;i<n;i++){ const top=-D*(i+1)/n; const st=shadowy(new T.Mesh(new T.BoxGeometry(STW/n+0.02,D+top+0.05,3),mat(0xd9d2c4))); st.position.set(ex+(i+0.5)*STW/n,(top-D)/2,sz); scene.add(st); }
+      const side=sz<zc?1:-1, wz=sz+side*1.7;
+      const par=shadowy(new T.Mesh(new T.BoxGeometry(Math.hypot(STW,D)+0.4,0.9,0.35),mat(0xf3f1ec))); par.position.set(ex+STW/2,-D/2+0.5,wz); par.rotation.z=-Math.atan2(D,STW); scene.add(par);
+      const wall=new T.Mesh(new T.BoxGeometry(STW,D,0.3),mat(0xb5503c)); wall.position.set(ex+STW/2,-D/2,wz+side*0.3); scene.add(wall);
     });
     footprints.push({x:ax,z:zc,w:7.2,d:L,c:'#b4553c'});
   })();
@@ -1209,12 +1259,18 @@ function rectWindow(x,y,z,w,h,rotY=0){
     const cx=X(633), cz=Z(485);
     [[0,-1],[0,1]].forEach(([sx,sz])=>{
       const tx=X(670)-2.4, tz=cz+sz*5.2;
-      const tw=shadowy(new T.Mesh(new T.CylinderGeometry(2.2,2.2,16,20),mat(0xa3452f))); tw.position.set(tx,8,tz); scene.add(tw); occluders.push(tw);
-      [4,8,12].forEach(y=>{ const ring=new T.Mesh(new T.CylinderGeometry(2.35,2.35,0.5,20),mat(0xd9d2c4)); ring.position.set(tx,y,tz); scene.add(ring); });
+      const D=SUNK.depth;
+      const tw=shadowy(new T.Mesh(new T.CylinderGeometry(2.2,2.2,16+D,20),mat(0xa3452f))); tw.position.set(tx,(16-D)/2,tz); scene.add(tw); occluders.push(tw);
+      [0,4,8,12].forEach(y=>{ const ring=new T.Mesh(new T.CylinderGeometry(2.35,2.35,0.5,20),mat(0xd9d2c4)); ring.position.set(tx,y,tz); scene.add(ring); });
       addCollider(tx,tz,4.4,4.4);
     });
-    [[-8,-6],[8,-6],[-8,6],[8,6]].forEach(([dx,dz])=>{ const b=shadowy(new T.Mesh(new T.BoxGeometry(3,0.5,0.9),mat(0xb08a5e))); b.position.set(cx+dx,0.45,cz+dz); scene.add(b);
-      const leg=new T.Mesh(new T.BoxGeometry(2.6,0.2,0.6),mat(0x8d8f8c)); leg.position.set(cx+dx,0.1,cz+dz); scene.add(leg); addCollider(cx+dx,cz+dz,3,0.9); });
+    const D=SUNK.depth;
+    [[-8,-6],[8,-6],[-8,6],[8,6]].forEach(([dx,dz])=>{ const b=shadowy(new T.Mesh(new T.BoxGeometry(3,0.5,0.9),mat(0xb08a5e))); b.position.set(cx+dx,0.45-D,cz+dz); scene.add(b);
+      const leg=new T.Mesh(new T.BoxGeometry(2.6,0.2,0.6),mat(0x8d8f8c)); leg.position.set(cx+dx,0.1-D,cz+dz); scene.add(leg); addCollider(cx+dx,cz+dz,3,0.9); });
+    // 下沉平台北、東、南三面的 B1 牆與門
+    const r=R(SUNK.x1,SUNK.y1,SUNK.x2,SUNK.y2), bw=mat(0xd6d1c6);
+    [[r.x,r.z-r.d/2+0.15,r.w,0.3],[r.x,r.z+r.d/2-0.15,r.w,0.3],[r.x+r.w/2-0.15,r.z,0.3,r.d]].forEach(([x,z,w,d])=>{ const m=new T.Mesh(new T.BoxGeometry(w,D,d),bw); m.position.set(x,-D/2,z); scene.add(m); });
+    [-12,0,12].forEach(dx=>[-1,1].forEach(s2=>{ const dr=new T.Mesh(new T.PlaneGeometry(1.8,2.4),mat(0x5a4a3e)); dr.position.set(r.x+dx+8,-D+1.2,r.z+s2*(r.d/2-0.32)); if(s2>0) dr.rotation.y=Math.PI; scene.add(dr); }));
   })();
   // 左天井東北角：圓弧陽台塔＋玻璃電梯
   (function(){
@@ -1308,19 +1364,28 @@ function rectWindow(x,y,z,w,h,rotY=0){
   footprints.push({x:cx,z:cz,w:26,d:26,c:'#a9877c',round:true,flat:true});
   footprints.push({x:cx,z:cz,w:12,d:12,c:'#4f7c66',round:true,flat:true});
 })();
-// 止於至善：靠公園北路圍牆的矮牆，紅柱、小屋簷，字面朝向校園（由右往左讀）
+// 止於至善：貼著公園北路圍牆，字面朝校園；紅柱、綠色琉璃瓦飛簷、米色匾額、下方木條
 (function(){
-  const x=X(536), z=Z(614), white=mat(0xf1eee8);
-  const base=shadowy(new T.Mesh(new T.BoxGeometry(9.4,0.4,1),mat(0x9a948a))); base.position.set(x,0.2,z); scene.add(base);
-  const wall=shadowy(new T.Mesh(new T.BoxGeometry(8.4,1.9,0.6),white)); wall.position.set(x,1.35,z); scene.add(wall);
-  const t=drawTex(768,128,g=>{ g.fillStyle='#f1eee8'; g.fillRect(0,0,768,128); g.strokeStyle='#8a7a6a'; g.lineWidth=4; g.strokeRect(10,10,748,108); g.fillStyle='#3a3028'; g.font='900 84px "Noto Serif TC", serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('善 至 於 止',384,70); });
+  const x=X(536), z=Z(614), W=9.4;
+  const base=shadowy(new T.Mesh(new T.BoxGeometry(W+1,0.35,1.2),mat(0xb8735a))); base.position.set(x,0.18,z); scene.add(base);
+  const back=shadowy(new T.Mesh(new T.BoxGeometry(W-0.4,3.2,0.4),mat(0xe9e4d8))); back.position.set(x,2,z+0.1); scene.add(back);
+  const t=drawTex(768,192,g=>{ g.fillStyle='#e8dfc6'; g.fillRect(0,0,768,192); g.strokeStyle='#b7a982'; g.lineWidth=8; g.strokeRect(6,6,756,180); g.fillStyle='#3a2e24'; g.font='900 110px "Noto Serif TC", serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('善 至 於 止',384,100); });
   lateTextures.push(t);
-  const plaque=new T.Mesh(new T.PlaneGeometry(7.6,1.5),new T.MeshBasicMaterial({map:t})); plaque.position.set(x,1.4,z-0.31); plaque.rotation.y=Math.PI; scene.add(plaque);
-  [-1,1].forEach(s2=>{ const p=shadowy(new T.Mesh(new T.BoxGeometry(0.6,2.5,0.8),mat(0xa8262a))); p.position.set(x+s2*4.5,1.45,z); scene.add(p); });
-  const roof=shadowy(new T.Mesh(new T.BoxGeometry(10,0.25,1.4),mat(0x4a4a4c))); roof.position.set(x,2.85,z); scene.add(roof);
-  const ridge=new T.Mesh(new T.BoxGeometry(9.6,0.3,0.4),mat(0x3a3a3c)); ridge.position.set(x,3.1,z); scene.add(ridge);
-  addCollider(x,z,10,1.2);
-  footprints.push({x,z,w:10,d:1.2,c:'#a8262a'});
+  const plaque=new T.Mesh(new T.PlaneGeometry(W-1,2),new T.MeshStandardMaterial({map:t,roughness:0.9})); plaque.position.set(x,2.55,z-0.13); plaque.rotation.y=Math.PI; scene.add(plaque);
+  const wood=mat(0x9c8a6e);
+  for(let i=0;i<3;i++){ const sl=new T.Mesh(new T.BoxGeometry(W-1,0.22,0.08),wood); sl.position.set(x,0.6+i*0.3,z-0.15); scene.add(sl); }
+  [-1,1].forEach(s2=>{ const p=shadowy(new T.Mesh(new T.CylinderGeometry(0.32,0.32,3.6,14),mat(0xb8262a))); p.position.set(x+s2*(W/2-0.1),2.15,z); scene.add(p);
+    const pb=new T.Mesh(new T.CylinderGeometry(0.42,0.46,0.4,14),mat(0xd9d4c8)); pb.position.set(x+s2*(W/2-0.1),0.55,z); scene.add(pb); addCollider(x+s2*(W/2-0.1),z,0.8,0.8); });
+  const beam=shadowy(new T.Mesh(new T.BoxGeometry(W+0.8,0.45,0.9),mat(0xf1eee8))); beam.position.set(x,4.1,z); scene.add(beam);
+  const sh=new T.Shape(); sh.moveTo(-1.35,0); sh.lineTo(1.35,0); sh.lineTo(0.3,0.95); sh.lineTo(-0.3,0.95); sh.lineTo(-1.35,0);
+  const rg=new T.ExtrudeGeometry(sh,{depth:W+1.6,bevelEnabled:false}); rg.translate(0,0,-(W+1.6)/2); rg.rotateY(Math.PI/2);
+  const tileT=texMat('gtile',W/1.2,1,64,64,(g)=>{ g.fillStyle='#3f7a4a'; g.fillRect(0,0,64,64); for(let x2=0;x2<64;x2+=8){ g.fillStyle='rgba(255,255,255,.18)'; g.fillRect(x2,0,3,64); g.fillStyle='rgba(0,0,0,.2)'; g.fillRect(x2+6,0,2,64); } });
+  const roof=shadowy(new T.Mesh(rg,tileT)); roof.position.set(x,4.3,z); scene.add(roof);
+  const ridge=new T.Mesh(new T.BoxGeometry(W+1.2,0.3,0.7),mat(0x2f5f3a)); ridge.position.set(x,5.3,z); scene.add(ridge);
+  [-1,1].forEach(sx=>{ [-1,1].forEach(sz=>{ const tip=new T.Mesh(new T.ConeGeometry(0.16,1.1,6),mat(0x2f5f3a)); tip.position.set(x+sx*(W/2+0.8),4.55,z+sz*1.25); tip.rotation.z=-sx*1.05; tip.rotation.x=sz*0.35; scene.add(tip); });
+    const rend=new T.Mesh(new T.ConeGeometry(0.18,0.9,6),mat(0x2f5f3a)); rend.position.set(x+sx*(W/2+0.75),5.6,z); rend.rotation.z=-sx*0.9; scene.add(rend); });
+  addCollider(x,z+0.1,W,0.6);
+  footprints.push({x,z,w:W+1,d:1.2,c:'#b8262a'});
 })();
 
 /* ---------- trees ---------- */
@@ -1376,34 +1441,52 @@ for(let py=424; py<=596; py+=29) palm(403,py,10+((py*7)%3));
 for(let x=492;x<=690;x+=42){ if(x>550 && x<600) continue; tree(x,416,1.0,true); }
 planePx(475,404,698,418,0xbdb6aa,0.035);   // 弘道樓北面灰磚步道
 planePx(563,384,587,430,0xbdb6aa,0.036);   // 中央大道：北穿堂往北到操場
-// 舊校舍：小禮堂與弘道樓北面之間的獨立平房，白牆、淺綠瓦、咖啡色百葉窗、前廊
+// 舊校舍：靠東側圍牆、南北向的獨立平房，前廊朝西；白牆、淺綠瓦、咖啡色百葉窗
 (function(){
-  const r=R(612,352,706,386), H=4.6, white=mat(0xf1eee8), fz=r.z+r.d/2;
-  const body=shadowy(new T.Mesh(new T.BoxGeometry(r.w,H,r.d-3),white)); body.position.set(r.x,H/2+0.5,r.z-1.5); scene.add(body); occluders.push(body); addCollider(r.x,r.z-1.5,r.w,r.d-3);
-  const plinth=shadowy(new T.Mesh(new T.BoxGeometry(r.w+1,0.5,r.d+0.5),mat(0xb8735a))); plinth.position.set(r.x,0.25,r.z); scene.add(plinth);
-  const clere=shadowy(new T.Mesh(new T.BoxGeometry(r.w-6,1.8,r.d-7),white)); clere.position.set(r.x,H+0.5+0.9,r.z-2); scene.add(clere);
-  for(let x=r.x-r.w/2+6;x<r.x+r.w/2-5;x+=4){ const w=new T.Mesh(new T.PlaneGeometry(1,0.5),mat(0x3e4a50)); w.position.set(x,H+1.5,r.z-2+(r.d-7)/2+0.02); scene.add(w); }
-  const gs=new T.Shape(); const hw=(r.d-5)/2+0.8; gs.moveTo(-hw,0); gs.lineTo(hw,0); gs.lineTo(0,2.8); gs.lineTo(-hw,0);
-  const gg=new T.ExtrudeGeometry(gs,{depth:r.w-4,bevelEnabled:false}); gg.translate(0,0,-(r.w-4)/2); gg.rotateY(Math.PI/2);
-  const roof=shadowy(new T.Mesh(gg,mat(0xbfd6a6,{roughness:0.6}))); roof.position.set(r.x,H+2.4,r.z-2); scene.add(roof);
-  const eave=shadowy(new T.Mesh(new T.BoxGeometry(r.w+0.6,0.3,3.6),white)); eave.position.set(r.x,H+0.4,fz-1.6); scene.add(eave);
-  for(let x=r.x-r.w/2+1;x<=r.x+r.w/2-0.9;x+=4.6){ const c=shadowy(new T.Mesh(new T.BoxGeometry(0.35,H-0.2,0.35),white)); c.position.set(x,0.5+(H-0.2)/2,fz-0.3); scene.add(c); addCollider(x,fz-0.3,0.4,0.4); }
-  const brown=mat(0x7a3b2a), glass=mat(0x2f3a3e);
-  const wf=r.z-1.5+(r.d-3)/2+0.03;
-  for(let i=0;i<9;i++){ const x=r.x-r.w/2+4+i*(r.w-8)/8;
-    if(i===7){ const d=new T.Mesh(new T.PlaneGeometry(2,2.6),mat(0x1f1c1b)); d.position.set(x,1.8,wf); scene.add(d); continue; }
-    const g=new T.Mesh(new T.PlaneGeometry(1.8,1.6),glass); g.position.set(x,2.6,wf); scene.add(g);
-    const fr=new T.Mesh(new T.PlaneGeometry(2,1.8),white); fr.position.set(x,2.6,wf-0.01); scene.add(fr);
-    [-1,1].forEach(s2=>{ const sh=new T.Mesh(new T.PlaneGeometry(0.85,1.8),brown); sh.position.set(x+s2*1.45,2.6,wf+0.01); scene.add(sh); }); }
-  for(let i=0;i<3;i++){ const st=shadowy(new T.Mesh(new T.BoxGeometry(3.4,0.17*(3-i),0.5),mat(0xa8564f))); st.position.set(r.x+r.w/2-4-(r.w-8)/8,0.085*(3-i),fz+0.25+i*0.5); scene.add(st); }
-  // 前方草地上的雕塑：立石、磚拱、黑色巨石
-  const stone=shadowy(new T.Mesh(new T.CylinderGeometry(0.7,0.9,3.2,8),mat(0xd0ccc4))); stone.position.set(X(660),1.6,Z(396)); stone.scale.z=0.6; scene.add(stone); addCollider(X(660),Z(396),1.6,1.2);
+  const R0=R(704,336,726,404), L=R0.d, Dp=R0.w, H=4.6, white=mat(0xf1eee8);
+  const g=new T.Group(); g.position.set(R0.x,0,R0.z); g.rotation.y=-Math.PI/2; scene.add(g);
+  const add=(m,x,y,z)=>{ m.position.set(x,y,z); g.add(m); return m; };
+  add(shadowy(new T.Mesh(new T.BoxGeometry(L,H,Dp-3),white)),0,H/2+0.5,-1.5);
+  add(shadowy(new T.Mesh(new T.BoxGeometry(L+1,0.5,Dp+0.5),mat(0xb8735a))),0,0.25,0);
+  add(shadowy(new T.Mesh(new T.BoxGeometry(L-6,1.8,Dp-7),white)),0,H+1.4,-2);
+  for(let x=-L/2+6;x<L/2-5;x+=4) add(new T.Mesh(new T.PlaneGeometry(1,0.5),mat(0x3e4a50)),x,H+1.5,-2+(Dp-7)/2+0.02);
+  const gs=new T.Shape(); const hw=(Dp-5)/2+0.8; gs.moveTo(-hw,0); gs.lineTo(hw,0); gs.lineTo(0,2.8); gs.lineTo(-hw,0);
+  const gg=new T.ExtrudeGeometry(gs,{depth:L-4,bevelEnabled:false}); gg.translate(0,0,-(L-4)/2); gg.rotateY(Math.PI/2);
+  add(shadowy(new T.Mesh(gg,mat(0xbfd6a6,{roughness:0.6}))),0,H+2.4,-2);
+  const fz=Dp/2;
+  add(shadowy(new T.Mesh(new T.BoxGeometry(L+0.6,0.3,3.6),white)),0,H+0.4,fz-1.6);
+  for(let x=-L/2+1;x<=L/2-0.9;x+=4.6) add(shadowy(new T.Mesh(new T.BoxGeometry(0.35,H-0.2,0.35),white)),x,0.5+(H-0.2)/2,fz-0.3);
+  const brown=mat(0x7a3b2a), glass=mat(0x2f3a3e), wf=-1.5+(Dp-3)/2+0.03;
+  for(let i=0;i<7;i++){ const x=-L/2+4+i*(L-8)/6;
+    if(i===5){ add(new T.Mesh(new T.PlaneGeometry(2,2.6),mat(0x1f1c1b)),x,1.8,wf); continue; }
+    add(new T.Mesh(new T.PlaneGeometry(2,1.8),white),x,2.6,wf-0.01);
+    add(new T.Mesh(new T.PlaneGeometry(1.8,1.6),glass),x,2.6,wf);
+    [-1,1].forEach(s2=>add(new T.Mesh(new T.PlaneGeometry(0.85,1.8),brown),x+s2*1.45,2.6,wf+0.01)); }
+  addCollider(R0.x,R0.z,R0.w,R0.d);
+  // 西側草地上的雕塑：立石、磚拱、黑色巨石
+  const stone=shadowy(new T.Mesh(new T.CylinderGeometry(0.7,0.9,3.2,8),mat(0xd0ccc4))); stone.position.set(X(698),1.6,Z(372)); stone.scale.x=0.6; scene.add(stone); addCollider(X(698),Z(372),1.2,1.6);
   const ba=new T.Group(); const bm=mat(0xb5603f);
   [-1,1].forEach(s2=>{ const leg=shadowy(new T.Mesh(new T.BoxGeometry(0.6,3,0.6),bm)); leg.position.set(s2*0.9,1.5,0); ba.add(leg); });
   const top=shadowy(new T.Mesh(new T.TorusGeometry(0.9,0.3,8,16,Math.PI),bm)); top.position.y=3; ba.add(top);
-  ba.position.set(X(622),0,Z(398)); scene.add(ba); addCollider(X(622),Z(398),2.4,0.8);
-  const boulder=shadowy(new T.Mesh(new T.DodecahedronGeometry(1.2,0),mat(0x3a3735))); boulder.position.set(X(614),0.8,Z(390)); boulder.scale.set(1,0.8,0.8); scene.add(boulder); addCollider(X(614),Z(390),2,2);
-  footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#bfd6a6'});
+  ba.position.set(X(698),0,Z(398)); ba.rotation.y=Math.PI/2; scene.add(ba); addCollider(X(698),Z(398),0.8,2.4);
+  const boulder=shadowy(new T.Mesh(new T.DodecahedronGeometry(1.2,0),mat(0x3a3735))); boulder.position.set(X(700),0.8,Z(346)); boulder.scale.set(0.8,0.8,1); scene.add(boulder); addCollider(X(700),Z(346),2,2);
+  footprints.push({x:R0.x,z:R0.z,w:R0.w,d:R0.d,c:'#bfd6a6'});
+})();
+// 小禮堂前的枯山水：白砂耙紋、苔石、石框
+(function(){
+  const r=R(660,352,694,392);
+  const sandT=texMat('karesan',1,1,256,256,(g)=>{ g.fillStyle='#e6e2d8'; g.fillRect(0,0,256,256); g.strokeStyle='rgba(120,110,95,.35)'; g.lineWidth=2;
+    for(let y=6;y<256;y+=9){ g.beginPath(); g.moveTo(0,y); g.lineTo(256,y); g.stroke(); }
+    [[80,90],[170,170],[190,70]].forEach(([cx,cy])=>{ g.fillStyle='#e6e2d8'; g.beginPath(); g.arc(cx,cy,46,0,Math.PI*2); g.fill(); for(let rr=14;rr<46;rr+=8){ g.beginPath(); g.arc(cx,cy,rr,0,Math.PI*2); g.stroke(); } }); });
+  const sand=new T.Mesh(new T.PlaneGeometry(r.w,r.d),sandT); sand.rotation.x=-Math.PI/2; sand.position.set(r.x,0.08,r.z); sand.receiveShadow=true; scene.add(sand);
+  const edge=mat(0x8f8b85);
+  [[r.w+0.8,0.5,r.x,r.z-r.d/2],[r.w+0.8,0.5,r.x,r.z+r.d/2],[0.5,r.d,r.x-r.w/2,r.z],[0.5,r.d,r.x+r.w/2,r.z]].forEach(([w,d,x,z])=>{ const m=shadowy(new T.Mesh(new T.BoxGeometry(w,0.35,d),edge)); m.position.set(x,0.18,z); scene.add(m); });
+  const u=r.w/256, v=r.d/256;
+  [[80,90,1.4],[170,170,1.1],[190,70,0.9]].forEach(([px,py,k])=>{ const x=r.x-r.w/2+px*u, z=r.z-r.d/2+py*v;
+    const rk=shadowy(new T.Mesh(new T.DodecahedronGeometry(1.2*k,0),mat(0x6e6a64))); rk.position.set(x,0.6*k,z); rk.scale.set(1,0.7,0.85); rk.rotation.y=px; scene.add(rk);
+    const moss=new T.Mesh(new T.CylinderGeometry(1.6*k,1.8*k,0.15,14),mat(0x5f8a45)); moss.position.set(x,0.12,z); scene.add(moss);
+    addCollider(x,z,2.4*k,2.4*k); });
+  footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#e6e2d8',flat:true});
 })();
 [[475,418,563],[587,418,698]].forEach(([x1,py,x2])=>{ const r=R(x1,py,x2,py+2); const e=shadowy(new T.Mesh(new T.BoxGeometry(r.w,0.5,0.6),mat(0xd6d1c6))); e.position.set(r.x,0.25,r.z); scene.add(e);
   const g=R(x1,py+1,x2,430); const gr=new T.Mesh(new T.PlaneGeometry(g.w,g.d),mat(0x6f9a58)); gr.rotation.x=-Math.PI/2; gr.position.set(g.x,0.06,g.z); scene.add(gr);
@@ -1666,7 +1749,7 @@ const PLACES = [
    desc:'進大門往北的車道中間有一條種滿樹的安全島，左邊一排椰子樹，右邊樹籬後面是弘道樓的白色圓柱門廊。直走到底，看到的黃磚牆和馬賽克壁畫就是明德堂。',
    fact:''},
   {id:'arch', name:'止於至善', kind:'校訓', spot:[536,596], look:[536,614], r:7, lab:[536,10,614],
-   desc:'噴泉西南邊、貼著公園北路圍牆的一道矮牆，跟圍牆平行，字面朝向校園，所以從校外看不到。兩端是紅柱子，上面有小屋簷，中間由右往左寫著校訓「止於至善」。',
+   desc:'噴泉西南邊、貼著公園北路圍牆的牌樓，跟圍牆平行，字面朝向校園，所以從校外看不到。兩根紅柱撐起綠色琉璃瓦的飛簷，中間米色匾額由右往左寫著校訓「止於至善」，下面是木條。',
    fact:'校訓出自《大學》：大學之道，在明明德，在親民，在止於至善。'},
   {id:'sun', name:'噴泉', kind:'紅樓前', spot:[606,598], look:[575,588], r:8, lab:[575,8.5,590],
    desc:'紅樓前圓形廣場中間的噴泉。石砌圓池中央立著一個黑色圓環雕塑，上面點綴著金色，四周是紅磚步道、草地和大樹，西南邊是止於至善的矮牆，北邊是紅樓的拱門。',
@@ -1675,7 +1758,7 @@ const PLACES = [
    desc:'噴泉正北邊的舊紅樓入口。紅磚牆上橫著灰白色的石材腰帶，一樓是石塊砌成的大拱門，拱心石特別大。這裡其實是一條穿堂：走進拱門，裡面是白色托斯坎柱和薄荷綠的牆裙，穿過白色拱門接上紅磚拱廊，一路往北走出去就是操場。',
    fact:'屬於「紅磚折衷式樣」，入口大廳有兩根圓柱和兩根半圓壁柱，都是托斯坎柱式。'},
   {id:'passage', name:'紅樓穿堂', kind:'弘道樓', spot:[575,536], look:[575,516], r:6, lab:[575,7,530],
-   desc:'紅樓拱門裡面的穿堂。兩根白色圓柱立在薄荷綠的柱腳上，前面一道白色拱門，拱門後面就是兩個天井中間的紅磚拱廊。直直往北走，穿過北邊的石拱門就到操場。',
+   desc:'紅樓拱門裡面的穿堂。四根白色托斯坎柱一字排開，立在薄荷綠的柱腳上，中間一道白色拱門，拱門後面就是兩個天井中間的紅磚拱廊。右手邊牆上是一扇藍色拱門和公告欄。',
    fact:''},
   {id:'hongdao', name:'弘道樓', kind:'行政', spot:[452,487], look:[480,485], r:12, lab:[492,23,485],
    desc:'教學行政大樓。正面朝著中央大道：一道寬寬的石階走上去，紅磚牆面中間是一個挑高兩層的大開口，四根白色大圓柱藏在裡面的門廳，要走進去才看得到；最裡面是開著三扇圓拱窗的紅磚牆。左邊牆上直寫「弘道樓 Hong Dao Building」，屋頂上方是白色三角山牆。北面是老式的灰色石基配拱窗；裡面圍出兩個天井，中間用紅磚拱廊隔開。',
@@ -1683,17 +1766,20 @@ const PLACES = [
   {id:'waxapple', name:'蓮霧樹天井', kind:'弘道樓', spot:[530,500], look:[545,480], r:10, lab:[545,24,485],
    desc:'弘道樓左邊的天井。中間長著一棵四層樓高的蓮霧樹，樹冠比旁邊的走廊還高，結果的季節抬頭就看得到紅色的蓮霧。',
    fact:''},
-  {id:'yard2', name:'弘道樓右天井', kind:'弘道樓', spot:[648,500], look:[600,478], r:10, lab:[633,10,485],
-   desc:'綠色地坪的天井，擺著幾張木長椅，後段那棟樓的中間並排兩座圓弧形的陽台塔。西邊是一道紅磚拱廊，屋頂當作花台擺滿盆栽，兩端有樓梯可以走上去；拱廊後面就是蓮霧樹那個天井，樹冠從屋頂上冒出來。',
+  {id:'yard2', name:'B1 大平台', kind:'弘道樓', spot:[640,500], look:[590,480], r:10, lab:[633,10,485],
+   desc:'地下一樓的綠色大平台，比一樓低一層。從這裡往上看，紅磚擋土牆上就是一樓的紅磚拱廊，牆腳一排花台，兩端是往上的樓梯；拱廊後面那棵大樹就是蓮霧樹。平台上擺著木長椅，後段那棟樓中間並排兩座圓弧陽台塔。',
    fact:''},
   {id:'arcade', name:'紅磚拱廊', kind:'弘道樓', spot:[598,492], look:[575,484], r:7, lab:[575,8,470],
-   desc:'夾在兩個天井中間的一層樓紅磚拱廊，兩側一整排圓拱，屋頂擺滿盆栽。左手邊是蓮霧樹的天井，右手邊是綠色地坪的天井；南接紅樓穿堂，北邊穿出弘道樓就是操場。',
+   desc:'連接南北兩側樓的一樓紅磚拱廊，兩側一整排圓拱，屋頂擺滿盆栽。左手邊穿過拱洞就是蓮霧樹的天井；右手邊往下一層是地下一樓的綠色大平台，南北兩端都有樓梯下去。南接紅樓穿堂，北邊穿出弘道樓就是操場。',
    fact:''},
   {id:'auditorium', name:'小禮堂', kind:'市定古蹟', spot:[650,344], look:[686,318], r:10, lab:[686,21,295],
    desc:'原臺南中學校的講堂。紅磚和灰白石材一層層交錯，正面是大三角山牆，上面開三扇圓拱窗；門廊有四根紅磚柱，後面是拱形門窗，兩側是拱形迴廊。',
    fact:'2010 年獲中央補助開始維修，2014 年整修完成，列為市定古蹟。'},
-  {id:'oldhall', name:'舊校舍', kind:'歷史', spot:[640,404], look:[652,370], r:9, lab:[659,11,369],
-   desc:'小禮堂和弘道樓北面之間的一棟獨立平房，不跟其他建築相連。白牆、淺綠色瓦屋頂，屋脊下有一排小高窗，前面是白柱子撐起的前廊，窗戶兩側是咖啡色百葉窗。門前草地上立著一塊長石、一座磚拱雕塑和一顆黑色巨石。',
+  {id:'oldhall', name:'舊校舍', kind:'歷史', spot:[698,414], look:[715,372], r:9, lab:[715,11,370],
+   desc:'小禮堂東南邊、靠著東側圍牆的一棟獨立平房，南北向，前廊朝西。白牆、淺綠色瓦屋頂，屋脊下一排小高窗，白柱子撐起的前廊，窗戶兩側是咖啡色百葉窗。前面草地上立著一塊長石、一座磚拱雕塑和一顆黑色巨石。',
+   fact:''},
+  {id:'karesansui', name:'枯山水', kind:'庭園', spot:[652,398], look:[677,372], r:8, lab:[677,6,372],
+   desc:'小禮堂正前方的日式枯山水，白砂耙成一道道平行的紋路，三顆石頭四周耙成同心圓，石頭底下長著青苔。面對小禮堂，右手邊靠圍牆的就是舊校舍。',
    fact:''},
   {id:'avenue', name:'中央大道', kind:'通道', spot:[590,404], look:[556,434], r:8, lab:[575,8,400],
    desc:'從紅樓穿堂一路往北穿出弘道樓的大道，直通操場。站在這裡，左手邊是弘道樓北翼的紅磚服務角，門口放著綠色垃圾桶和推車；斜前方遠遠的就是明德堂的柱廊正面。',
@@ -1708,8 +1794,11 @@ const PLACES = [
    desc:'運動場南側的一排大榕樹。運動會時各班在這裡紮營，大考期間也會搭帳篷給陪考家長休息。',
    fact:''},
   {id:'mingde', name:'明德堂', kind:'體育館', spot:[478,384], look:[446,350], r:14, lab:[400,20,330],
-   desc:'黃褐色面磚的大型體育館。正面朝東，隔著操場對著小禮堂：一整排圓柱的柱廊，上方寫著「明德堂 Ming-De Hall」，合作社就在柱廊後面。東南角的塔樓朝南那一面是一大片馬賽克壁畫，塔樓西邊有樓梯上去。',
+   desc:'黃褐色面磚的大型體育館。正面朝東，隔著操場對著小禮堂：一整排圓柱的柱廊，上方寫著「明德堂 Ming-De Hall」，合作社就在柱廊後面。東南角塔樓朝南的牆上是一大片馬賽克浮雕，有大樹、紅瓦房和人物；塔樓西邊有樓梯上去。',
    fact:'開學典禮、家長座談、大型集會都在這裡，一樓有舞台、二樓有看台。'},
+  {id:'relief', name:'明德堂浮雕', kind:'藝術', spot:[429,420], look:[429,394], r:7, lab:[429,22,394],
+   desc:'明德堂東南角塔樓朝南的牆面，一大片馬賽克浮雕：上方是藍色旋渦般的天空和一隻黑鳥，中間一棵大樹，右上是紅瓦白屋，四周有幾個人物，底下是一層層浪花。',
+   fact:''},
   {id:'courts', name:'籃球場', kind:'運動', spot:[415,190], look:[415,150], r:16, lab:[415,7,190],
    desc:'四面綠色籃球場，外圍是粉紅色的地坪，籃架是藍色的。東邊隔著一排樹就是司令台和操場，南邊立著照明燈柱。',
    fact:''},
@@ -1747,10 +1836,10 @@ const PLACES = [
    desc:'紫卿亭南邊獨立的一棟粉紅面磚三層樓，正面朝東。左邊是有柱子的門廊和台階，二樓露台上搭著綠色遮陽棚。大考時也會當作考生休息區。',
    fact:''},
   {id:'library', name:'圖書館', kind:'學習', spot:[284,482], look:[262,476], r:9, lab:[255,22,472],
-   desc:'白色的四層樓，二、三樓外面包著一圈木色橫向格柵，一樓寫著 Library，頂樓牆上是「圖書館」三個字。正門面向紅磚廣場，二樓、三樓有天橋通到勤學樓。',
+   desc:'白色的四層樓，二、三樓外面包著一圈木色橫向格柵，一樓寫著 Library，頂樓牆上是「圖書館」三個字。正門面向紅磚廣場；旁邊和勤學樓之間，一、二、三樓都有走廊相連，白色樓板配藍綠色飾帶。',
    fact:''},
   {id:'qinxue', name:'勤學樓', kind:'教學大樓', spot:[350,494], look:[350,445], r:12, lab:[331,20,441],
-   desc:'粉紅色面磚的大樓，最上層是一排圓拱窗，一樓是有柱子的騎樓。西邊和圖書館之間用二樓、三樓的天橋連起來，東端是白色的圓形建築，前面是一大片紅磚廣場。',
+   desc:'粉紅色面磚的大樓，最上層是一排圓拱窗，一樓是有柱子的騎樓。西邊和圖書館之間用一、二、三樓的走廊連起來，東端是白色的圓形建築，前面是一大片紅磚廣場。',
    fact:''},
   {id:'food', name:'美食廣場', kind:'生活', spot:[357,478], look:[357,452], r:7, lab:[357,9,457],
    desc:'勤學樓一樓騎樓的東段，有便當、麵食和飲料店，騎樓下擺著桌椅。中午下課鐘一響，這裡最先排起隊。',
@@ -1874,6 +1963,13 @@ function pushOut(pos){
   }
 }
 const OFF = [[0,0],[PR+0.4,0],[-PR-0.4,0],[0,PR+0.4],[0,-PR-0.4]];
+const SUNKR = R(SUNK.x1,SUNK.y1,SUNK.x2,SUNK.y2);
+function groundY(x,z){
+  if(x<SUNKR.x-SUNKR.w/2 || x>SUNKR.x+SUNKR.w/2 || z<SUNKR.z-SUNKR.d/2 || z>SUNKR.z+SUNKR.d/2) return 0;
+  const dx=x-(SUNKR.x-SUNKR.w/2);
+  if(dx<7.2 && (window.__STAIRS||[]).some(sz=>Math.abs(z-sz)<1.5)) return -SUNK.depth*Math.min(1,dx/7.2);
+  return -SUNK.depth;
+}
 const OUT = R(330,621,540,648);
 const inOut = (x,z)=>x>OUT.x-OUT.w/2 && x<OUT.x+OUT.w/2 && z>OUT.z-OUT.d/2 && z<OUT.z+OUT.d/2;
 const inside = (x,z)=>OFF.every(o=>inPoly(x+o[0],z+o[1]) || inOut(x+o[0],z+o[1]));
@@ -1988,7 +2084,8 @@ function step(){
   if(moving) walkT += dt*10; else walkT *= 0.85;
   const sw = Math.sin(walkT)*(moving?0.6:0);
   player.userData.legs[0].rotation.x = sw; player.userData.legs[1].rotation.x = -sw;
-  player.position.y = moving ? Math.abs(Math.sin(walkT))*0.15 : 0;
+  const gY = groundY(player.position.x, player.position.z);
+  player.position.y = gY + (moving ? Math.abs(Math.sin(walkT))*0.15 : 0);
 
   // heron
   const hd = heron.userData;
@@ -2018,10 +2115,10 @@ function step(){
   });
   if(!fly) showPlace(best);
 
-  camTarget.set(player.position.x, 3, player.position.z);
+  camTarget.set(player.position.x, gY+3, player.position.z);
   const cp = Math.cos(pitch);
   const inYard = YARDS.some(r=>player.position.x>r.x-r.w/2 && player.position.x<r.x+r.w/2 && player.position.z>r.z-r.d/2 && player.position.z<r.z+r.d/2);
-  const ePitch = inYard ? Math.max(pitch,0.5) : pitch, eDist = inYard ? Math.min(dist,15) : dist;
+  const ePitch = gY < -1 ? Math.max(pitch,0.25) : inYard ? Math.max(pitch,0.5) : pitch, eDist = inYard ? Math.min(dist,15) : dist;
   const c2 = Math.cos(ePitch);
   camDir.set(Math.sin(yaw)*c2, Math.sin(ePitch), Math.cos(yaw)*c2).normalize();
   ray.set(camTarget, camDir); ray.far = eDist;
