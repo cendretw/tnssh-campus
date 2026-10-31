@@ -33,12 +33,21 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 #side{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 #mini{width:190px;height:158px;padding:0;display:block}
 #mini canvas{width:100%;height:100%}
-.tools{display:flex;gap:6px}
+.tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 24px)}
 .tools button{background:var(--paper);border:1.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink);padding:6px 10px;font-size:13px;font-weight:500;color:var(--ink)}
 .tools button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 
 #list{position:fixed;top:calc(238px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));width:240px;max-height:calc(100% - 260px);overflow:auto;padding:10px 0}
 #list h2{font-family:var(--display);font-size:15px;margin:0 14px 6px}
+#list .tabs{display:flex;gap:6px;margin:0 14px 8px}
+#list .tabs button{flex:1;background:var(--paper);border:1.5px solid var(--ink);padding:4px 8px;font-size:13px;color:var(--ink)}
+#list .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+#card .dir{margin-top:10px;padding-top:8px;border-top:1.5px solid var(--ink);font-size:13px;line-height:1.5}
+#card .dir b{display:block;font-size:11px;letter-spacing:.12em;color:var(--brick);margin-bottom:4px}
+#card .dir .row{display:grid;grid-template-columns:40px 1fr;gap:6px;padding:2px 0}
+#card .dir .row i{font-family:Georgia,serif;color:var(--ink-soft);font-size:12px}
+#card .dir .row.hi{background:#f3dcc4;font-weight:700}
+#card .dir .fl{font-variant-numeric:tabular-nums;color:var(--ink-soft)}
 #list ol{list-style:none;margin:0;padding:0}
 #list li button{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;padding:7px 14px;font-size:14px;cursor:pointer}
 #list li button:hover,#list li button:focus-visible{background:var(--paper-2)}
@@ -53,6 +62,12 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 #card h3{font-family:var(--display);font-size:21px;margin:2px 0 6px;text-wrap:balance}
 #card p{margin:0;font-size:14px;line-height:1.7;color:var(--ink)}
 #card .fact{margin-top:6px;font-size:12px;color:var(--ink-soft)}
+#card{max-height:min(46vh,420px);overflow:auto}
+#card p.en{margin-top:8px;padding-top:8px;border-top:1px dashed var(--ink-soft);font-family:Georgia,"Times New Roman",serif;font-size:14px;line-height:1.6;color:var(--ink)}
+#card .fact.en{font-family:Georgia,"Times New Roman",serif;font-style:italic}
+#card h3 .en{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:15px;color:var(--brick);margin-left:6px}
+#list small.en{display:block;font-size:11px;color:var(--ink-soft);font-family:Georgia,serif}
+.note a{color:var(--ink-soft)}
 
 #joy{position:fixed;left:calc(22px + env(safe-area-inset-left,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));width:120px;height:120px;border-radius:50%;border:2px solid rgba(43,36,32,.6);background:rgba(246,239,226,.45);touch-action:none}
 #joy i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
@@ -89,7 +104,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 <div id="brand" class="panel">
   <div class="k">TNSSH · Since 1914</div>
   <h1>南二中校園漫遊</h1>
-  <div class="meta"><span>已走訪 <b id="count">0</b> / <span id="total">0</span></span><span id="where">公園北路大門</span><span id="clock">--:--</span></div>
+  <div class="meta"><span><span id="visitedLbl">已走訪</span> <b id="count">0</b> / <span id="total">0</span></span><span id="where">公園北路大門</span><span id="clock">--:--</span></div>
 </div>
 
 <div id="side">
@@ -99,12 +114,14 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <button id="btnLabel" aria-pressed="true">名牌</button>
     <button id="btnTime">時間：現在</button>
     <button id="btnSound" aria-pressed="false">聲音</button>
+    <button id="btnLang">語言：雙語</button>
     <button id="btnHelp">玩法</button>
   </div>
 </div>
 
 <nav id="list" class="panel" hidden aria-label="地點清單">
   <h2>想去哪裡？點一下就走過去</h2>
+  <div class="tabs"><button id="tabPlaces" aria-pressed="true">地點</button><button id="tabOffices" aria-pressed="false">處室</button></div>
   <ol id="listOl"></ol>
 </nav>
 
@@ -115,6 +132,9 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <h3 id="cName"></h3>
     <p id="cDesc"></p>
     <div class="fact" id="cFact"></div>
+    <p class="en" id="cEn" hidden></p>
+    <div class="fact en" id="cEnF" hidden></div>
+    <div class="dir" id="cDir" hidden></div>
   </div>
 </section>
 
@@ -122,19 +142,12 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 
 <div id="intro">
   <div class="panel">
-    <div class="k">校園導覽 · 第十七版</div>
-    <h2>從公園北路大門，<br>走進南二中。</h2>
-    <p>你會站在大門口，面向校園。走近任何一棟建築，下方就會出現它的介紹；走過的地點會蓋上章，右上的清單和小地圖都可以直接傳送過去。</p>
-    <ul>
-      <li>電腦：<kbd>W A S D</kbd> 或方向鍵走路，<kbd>Shift</kbd> 跑步；拖曳畫面轉視角，滾輪拉近拉遠</li>
-      <li>手機／平板：左下搖桿走路，在畫面上拖曳轉視角</li>
-      <li>配置照學校的校區平面圖排列，建築是簡化的模型</li>
-      <li>校園裡有穿制服、運動服、黑色班 T 的同學在走動、跑步、打球；仔細找找，還有幾個意想不到的人</li>
-      <li>東邊圍牆外的舊鐵道，偶爾會有火車經過；右上角可以打開聲音</li>
-      <li>校園會跟著現在的時間變成白天或晚上，上學時間（08:00–17:00）才會看到很多同學；右上角「時間」可以切換早上、中午、黃昏、夜晚</li>
-      <li>你會站在公園北路的大門外，往前走就進校園了</li>
-    </ul>
+    <div class="k" id="introK">校園導覽</div>
+    <h2 id="introH">從公園北路大門，<br>走進南二中。</h2>
+    <p id="introP"></p>
+    <ul id="introL"></ul>
     <button id="go">開始走走</button>
+    <p class="note"><a id="introSrc" href="https://potato186.blogspot.com/2016/08/tnssh.html" target="_blank" rel="noopener">建築介紹參考</a></p>
   </div>
 </div>
 
@@ -448,15 +461,16 @@ const lateTextures = [];
 
 /* ---------- labels ---------- */
 const labels = [];
-function makeLabel(text, x, y, z){
+function makeLabel(text, x, y, z, sub){
   const c = document.createElement('canvas'); const g = c.getContext('2d');
-  const fs = 44; g.font = `900 ${fs}px "Noto Serif TC", serif`;
-  c.width = Math.ceil(g.measureText(text).width) + 48; c.height = 76;
-  g.font = `900 ${fs}px "Noto Serif TC", serif`;
+  const fs = 44, sf='600 26px "Noto Sans TC", sans-serif'; g.font = `900 ${fs}px "Noto Serif TC", serif`;
+  let w = g.measureText(text).width; if(sub){ g.font=sf; w=Math.max(w,g.measureText(sub).width); }
+  c.width = Math.ceil(w) + 48; c.height = sub ? 108 : 76;
   g.fillStyle = '#f6efe2'; g.strokeStyle = '#2b2420'; g.lineWidth = 4;
   g.fillRect(2,2,c.width-4,c.height-4); g.strokeRect(2,2,c.width-4,c.height-4);
   g.fillStyle = '#2b2420'; g.textBaseline = 'middle'; g.textAlign = 'center';
-  g.fillText(text, c.width/2, c.height/2+2);
+  g.font = `900 ${fs}px "Noto Serif TC", serif`; g.fillText(text, c.width/2, sub ? 40 : c.height/2+2);
+  if(sub){ g.font=sf; g.fillStyle='#a8432f'; g.fillText(sub, c.width/2, 82); }
   const tex = new T.CanvasTexture(c); tex.minFilter = T.LinearFilter; tex.encoding = T.sRGBEncoding;
   const sp = new T.Sprite(new T.SpriteMaterial({map:tex, depthWrite:false, transparent:true}));
   sp.scale.set(c.width*0.085, c.height*0.085, 1); sp.position.set(x,y,z); sp.renderOrder = 5;
@@ -1019,31 +1033,38 @@ function rectWindow(x,y,z,w,h,rotY=0){
 })();
 
 // K館、圖書館、勤學樓（兩棟分開，2F 與 3F 天橋相連）、科學館
-// K館：紅磚，比英文科社會科辦公室稍大。一、二樓大，三樓退縮；左側門廊＋台階，二樓露台綠色遮陽棚
+// K館：紅磚四層樓，獨立在圖書館西邊、離紫卿亭有一段距離。一、二樓滿版，三、四樓往後退；左側（南端）深出挑門廊＋寬台階，三樓露台綠色採光棚
 (function(){
-  const r=R(180,430,206,466), roofM=mat(0x9c968c), K=(n,f)=>facadeMat(STYLES.kgym,n,f), gray=mat(0xcfc8bc);
-  const H1=8.6;
+  const r=R(176,446,208,486), roofM=mat(0x9c968c), K=(n,f)=>facadeMat(STYLES.kgym,n,f), gray=mat(0xd6d0c4);
+  const H1=8.8;
   const lo=shadowy(new T.Mesh(new T.BoxGeometry(r.w,H1,r.d),[K(r.d,2),K(r.d,2),roofM,roofM,K(r.w,2),K(r.w,2)])); lo.position.set(r.x,H1/2,r.z); scene.add(lo); occluders.push(lo); addCollider(r.x,r.z,r.w,r.d);
-  [4.3,H1].forEach(y=>{ const b=shadowy(new T.Mesh(new T.BoxGeometry(r.w+1.6,0.5,r.d+1.6),gray)); b.position.set(r.x,y,r.z); scene.add(b); });
-  const par=new T.Mesh(new T.BoxGeometry(r.w+0.4,1,r.d+0.4),K(r.w,1)); par.position.set(r.x,H1+0.75,r.z); scene.add(par);
-  const u=R(180,436,200,466), H2=3.8;
-  const up=shadowy(new T.Mesh(new T.BoxGeometry(u.w,H2,u.d),[K(u.d,1),K(u.d,1),roofM,roofM,K(u.w,1),K(u.w,1)])); up.position.set(u.x,H1+0.25+H2/2,u.z); scene.add(up); occluders.push(up);
-  const up2=new T.Mesh(new T.BoxGeometry(u.w+0.4,0.5,u.d+0.4),gray); up2.position.set(u.x,H1+0.25+H2+0.25,u.z); scene.add(up2);
-  // 二樓露台綠色遮陽棚
+  [4.4,H1].forEach(y=>{ const b=shadowy(new T.Mesh(new T.BoxGeometry(r.w+1.8,0.55,r.d+1.2),gray)); b.position.set(r.x+0.3,y,r.z); scene.add(b); });
+  const par=new T.Mesh(new T.BoxGeometry(r.w+0.4,1.1,r.d+0.4),K(r.w,1)); par.position.set(r.x,H1+0.8,r.z); scene.add(par);
+  // 三、四樓：往西退縮
+  const u=R(176,446,201,486), H2=8;
+  const up=shadowy(new T.Mesh(new T.BoxGeometry(u.w,H2,u.d),[K(u.d,2),K(u.d,2),roofM,roofM,K(u.w,2),K(u.w,2)])); up.position.set(u.x,H1+0.3+H2/2,u.z); scene.add(up); occluders.push(up);
+  const cap=new T.Mesh(new T.BoxGeometry(u.w+0.5,0.6,u.d+0.5),gray); cap.position.set(u.x,H1+0.3+H2+0.3,u.z); scene.add(cap);
+  // 三樓露台綠色採光棚
   const green=new T.MeshStandardMaterial({color:0x4fb59a,transparent:true,opacity:0.6,roughness:0.3,side:T.DoubleSide});
-  const can=new T.Mesh(new T.PlaneGeometry(4.4,r.d),green); can.rotation.x=-Math.PI/2; can.rotation.y=-0.2; can.position.set(r.x+r.w/2-2.2,H1+3.2,r.z); scene.add(can);
-  for(let i=0;i<5;i++){ const post=new T.Mesh(new T.BoxGeometry(0.12,3,0.12),mat(0xdedad2)); post.position.set(r.x+r.w/2-0.2,H1+1.6,r.z-r.d/2+0.5+i*(r.d-1)/4); scene.add(post); }
-  // 一樓左側（南端）門廊與台階，朝東
-  const ex=r.x+r.w/2, pz=r.z+r.d/2-5;
-  const pc=shadowy(new T.Mesh(new T.BoxGeometry(4,0.6,9),gray)); pc.position.set(ex+2,4.3,pz); scene.add(pc);
-  [pz-4.2,pz+4.2].forEach(z=>{ const c=shadowy(new T.Mesh(new T.BoxGeometry(0.8,4,0.8),mat(0xb8635c))); c.position.set(ex+3.6,2,z); scene.add(c); addCollider(ex+3.6,z,0.8,0.8); });
-  for(let i=0;i<4;i++){ const st=shadowy(new T.Mesh(new T.BoxGeometry(0.9,0.28*(4-i),8),mat(0xa8564f))); st.position.set(ex+0.45+i*0.9,0.14*(4-i),pz); scene.add(st); }
-  const door=new T.Mesh(new T.PlaneGeometry(3.6,3),mat(0x4a4038)); door.position.set(ex+0.03,1.5,pz); door.rotation.y=Math.PI/2; scene.add(door);
+  const ex=r.x+r.w/2, ux=u.x+u.w/2;
+  const can=new T.Mesh(new T.PlaneGeometry(ex-ux+0.8,r.d*0.62),green); can.rotation.x=-Math.PI/2; can.rotation.y=-0.25; can.position.set((ex+ux)/2,H1+3.6,r.z+r.d*0.16); scene.add(can);
+  for(let i=0;i<5;i++){ const post=new T.Mesh(new T.BoxGeometry(0.12,3.2,0.12),mat(0xdedad2)); post.position.set(ex-0.2,H1+1.7,r.z-r.d*0.15+i*r.d*0.155); scene.add(post); }
+  // 南端（從正面看是左邊）的深出挑門廊：上方二樓露台、大玻璃門、寬台階
+  const pz=r.z+r.d/2-6;
+  const roofP=shadowy(new T.Mesh(new T.BoxGeometry(6,0.7,11),gray)); roofP.position.set(ex+3,4.6,pz); scene.add(roofP);
+  const soff=new T.Mesh(new T.PlaneGeometry(6,11),texMat('soffit',4,6,32,32,(g)=>{ g.fillStyle='#b8a490'; g.fillRect(0,0,32,32); g.fillStyle='rgba(0,0,0,.25)'; for(let x=0;x<32;x+=4) g.fillRect(x,0,1,32); })); soff.rotation.x=Math.PI/2; soff.position.set(ex+3,4.24,pz); scene.add(soff);
+  const rail=new T.Mesh(new T.BoxGeometry(6,1.1,11),K(6,1)); rail.position.set(ex+3,5.5,pz); rail.scale.set(1,1,1); scene.add(rail);
+  [pz+5,pz-5].forEach(z=>{ const c=shadowy(new T.Mesh(new T.BoxGeometry(0.9,4.3,0.9),mat(0xb8635c))); c.position.set(ex+5.4,2.15,z); scene.add(c); addCollider(ex+5.4,z,0.9,0.9); });
+  for(let i=0;i<4;i++){ const st=shadowy(new T.Mesh(new T.BoxGeometry(0.9,0.28*(4-i),10),mat(0x6e4a40))); st.position.set(ex+0.45+i*0.9+1.2,0.14*(4-i),pz); scene.add(st); }
+  const glass=new T.Mesh(new T.PlaneGeometry(4.8,3.2),mat(0x5a6870,{roughness:0.25})); glass.position.set(ex+0.03,1.9,pz); glass.rotation.y=Math.PI/2; scene.add(glass);
+  const sign=new T.Mesh(new T.PlaneGeometry(1,0.6),mat(0x3f7a4a)); sign.position.set(ex+0.04,2.6,pz-3.2); sign.rotation.y=Math.PI/2; scene.add(sign);
+  // 北側大樹
   footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#c4736b'});
 })();
+tree(214,446,1.2,true);
 // 圖書館：白色、2F–3F 木色橫向格柵、正面朝東
 (function(){
-  const r=R(235,462,275,515), ex=r.x+r.w/2, white=mat(0xf2f0eb);
+  const r=R(235,466,275,538), ex=r.x+r.w/2, white=mat(0xf2f0eb);
   const LIBBASE=(g)=>{ g.fillStyle='#f2f0eb'; g.fillRect(0,0,64,64); g.fillStyle='#7cc4c0'; g.fillRect(6,14,24,40); g.fillStyle='#dfe8e8'; g.fillRect(34,14,24,40); g.fillStyle='#f2f0eb'; g.fillRect(17,14,2,40); g.fillRect(45,14,2,40); g.fillRect(6,32,52,2); };
   const LOUVER=(g)=>{ g.fillStyle='#3e4448'; g.fillRect(0,0,64,64); for(let y=2;y<64;y+=8){ g.fillStyle='#c9a978'; g.fillRect(0,y,64,4); g.fillStyle='#a8875a'; g.fillRect(0,y+4,64,1); } };
   const LIBTOP=(g)=>{ g.fillStyle='#f2f0eb'; g.fillRect(0,0,64,64); g.fillStyle='#55636a'; g.fillRect(8,10,48,38); g.fillStyle='#f2f0eb'; g.fillRect(30,10,4,38); g.fillStyle='#cfd2d0'; g.fillRect(8,40,48,2); };
@@ -1061,7 +1082,7 @@ function rectWindow(x,y,z,w,h,rotY=0){
   const b3=shadowy(new T.Mesh(new T.BoxGeometry(r.w,3,r.d),[ts,ts,white,white,te,te])); b3.position.set(r.x,15.1,r.z); scene.add(b3); occluders.push(b3);
   const roof=shadowy(new T.Mesh(new T.BoxGeometry(r.w+2.4,0.5,r.d+2.4),white)); roof.position.set(r.x,16.85,r.z); scene.add(roof);
   const red=shadowy(new T.Mesh(new T.BoxGeometry(r.w*0.55,3.2,r.d*0.3),mat(0xb4553c))); red.position.set(r.x-r.w*0.18,18.7,r.z+r.d*0.22); scene.add(red);
-  addCollider(r.x,r.z,r.w+1.2,r.d+1.2);
+  addCollider(r.x,r.z,r.w+0.4,r.d+0.4);
   footprints.push({x:r.x,z:r.z,w:r.w,d:r.d,c:'#f2f0eb'});
 })();
 // 勤學樓：粉紅面磚、頂樓圓拱窗、一樓騎樓
@@ -1107,7 +1128,7 @@ function rectWindow(x,y,z,w,h,rotY=0){
 (function(){
   // 圖書館 ↔ 勤學樓：一、二、三樓都有走廊相連（白色樓板、藍綠色飾帶、白欄杆）
   // 走廊從圖書館北面往北接到勤學樓（南北向）
-  const b=R(247,451,265,463), white=mat(0xf3f1ec), teal=mat(0x4f9a9a), rail=mat(0xe6e6e3);
+  const b=R(238,452,256,466), white=mat(0xf3f1ec), teal=mat(0x4f9a9a), rail=mat(0xe6e6e3);
   [0,4,8].forEach((y0,lv)=>{
     if(lv>0){ const deck=shadowy(new T.Mesh(new T.BoxGeometry(b.w,0.4,b.d),white)); deck.position.set(b.x,y0,b.z); scene.add(deck); }
     const roof=shadowy(new T.Mesh(new T.BoxGeometry(b.w+0.6,0.45,b.d+0.4),white)); roof.position.set(b.x,y0+3.7,b.z); scene.add(roof);
@@ -1565,7 +1586,7 @@ for(let y=440;y<=536;y+=24) tree(714,y,0.75);
 // 科學館北側
 for(let x=292;x<=384;x+=22) tree(x,532,0.75);
 // 西側零星
-[[214,486],[214,520],[222,600],[160,450],[276,180],[276,214],[276,248],[96,320],[196,318],[256,320],[226,340]].forEach(p=>tree(p[0],p[1],0.85));
+[[218,520],[222,600],[160,450],[276,180],[276,214],[276,248],[96,320],[196,318],[256,320],[226,340]].forEach(p=>tree(p[0],p[1],0.85));
 tree(192,306,1.1,true);
 palm(540,612,11); palm(640,614,12); palm(596,617,10);
 
@@ -1986,7 +2007,7 @@ function updateTrains(dt){
       tr.userData.dir = north?1:-1; tr.userData.speed = tr.userData.kind==='tc'?38:26;
       tr.position.set(TRACKS[north?1:0], 0, north ? Z(-420)-tr.userData.len : Z(920)+tr.userData.len);
       tr.rotation.y = north?0:Math.PI; tr.visible=true; trainActive=tr; trainHonked=false;
-      toast((north?'⇣ 往台南站 ':'⇡ 往新營 ')+tr.userData.name+' 通過中'); }
+      { const u=L(), nm=tr.userData.kind==='tc'?'tc':'rc'; toast(LANG==='both' ? (UI.zh[north?'south':'north']+UI.zh[nm]+UI.zh.pass+' · '+UI.en[nm]) : (u[north?'south':'north']+u[nm]+u.pass)); } }
     return; }
   const tr=trainActive; tr.position.z += tr.userData.dir*tr.userData.speed*dt;
   const near=Math.abs(tr.position.z-tr.userData.dir*tr.userData.len/2-player.position.z), dist=Math.hypot(tr.position.x-player.position.x, near);
@@ -2048,13 +2069,15 @@ function applyTime(h){
   else if(h<18) fr=1-(h-17)*0.8; else if(h<21) fr=0.2-(h-18)*0.06; else fr=0;
   studentFrac=Math.max(0,Math.min(1,fr));
   const hh=Math.floor(h)%24, mm=Math.floor((h-Math.floor(h))*60);
-  const ce=document.getElementById('clock'); if(ce) ce.textContent=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+(h>=8&&h<17?' 上課中':h>=17&&h<19?' 放學':h<6||h>=19?' 夜晚':' 清晨');
+  const ce=document.getElementById('clock'); if(ce) ce.textContent=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+' '+L().st[(h>=8&&h<17)?'cls':(h>=17&&h<19)?'after':(h<6||h>=19)?'night':'early'];
 }
 /* ---------- places (spot/look/label in plan pixels) ---------- */
+const DIR = {"hongdao": [["1F", "學務處", "Office of Student Affairs"], ["2F", "教務處", "Office of Academic Affairs"], ["", "總務處", "Office of General Affairs"], ["", "校長室", "Principal's Office"], ["", "主計室", "Accounting Office"], ["", "人事室", "Personnel Office"], ["", "輔導室", "Counseling Office"], ["", "健康中心", "Health Center"], ["", "校史室", "School History Room"], ["", "國文科辦公室", "Chinese Department Office"], ["", "數學科辦公室", "Math Department Office"], ["", "美術科辦公室", "Art Department Office"], ["2F", "二樓會議室", "2F Meeting Room"], ["4F", "四樓會議室", "4F Meeting Room"], ["3F", "社會科專科教室", "Social Studies Classroom"], ["4F", "水彩教室", "Watercolor Studio"], ["", "資訊專科教室", "Computer Labs"], ["", "國文專科教室・國文科準備室", "Chinese Classroom & Prep Room"], ["", "數學專科教室", "Math Classroom"], ["", "素描教室・多媒體教室", "Drawing Studio & Multimedia Room"], ["", "英文專科教室", "English Classrooms"]], "genkan": [["1F", "玄關", "Entrance Hall"]], "gate": [["", "傳達室", "Guard House"], ["", "ATM", "ATM"]], "science": [["1F", "化學實驗室 1・2、藥品室", "Chemistry Labs 1–2, Chemical Storage"], ["2F", "物理實驗室 1–4", "Physics Labs 1–4"], ["3F", "生物實驗室、生物討論室、生物標本室", "Biology Lab, Discussion & Specimen Rooms"], ["4F", "地科實驗室、地科標本室", "Earth Science Lab & Specimen Room"], ["4F", "星象館", "Planetarium"], ["4F", "AI 人工智慧體驗教室", "AI Experience Classroom"], ["1–4F", "多功能教室 1–4", "Multipurpose Rooms 1–4"], ["南側", "教職員工車棚", "Staff Parking Shed"]], "qinxue": [["1F", "自然科辦公室", "Science Department Office"], ["1F", "多功能教室", "Multipurpose Room"], ["1F", "文藝走廊", "Arts Corridor"], ["1F", "美食廣場", "Food Court"]], "library": [["", "閱覽室", "Reading Room"], ["", "書庫", "Stacks"], ["", "討論區", "Discussion Area"], ["", "日文書討論區", "Japanese Books Corner"]], "pinkwing": [["1F", "英文科辦公室", "English Department Office"], ["2F", "社會科辦公室", "Social Studies Department Office"]], "pe": [["", "體育科辦公室", "PE Department Office"]], "mingde": [["1F", "合作社", "School Store"]], "stage": [["", "升旗台", "Flag-raising Platform"]], "field": [["北側", "學生自行車車棚", "Student Bike Shed"]], "arts": [["北側", "資源回收・垃圾場", "Recycling & Waste Area"]], "kgym": [["", "二中 K 館", "TNSSH K Hall"]]};
+const EN = {"gate": {"n": "Main Gate", "k": "Entrance", "d": "The main gate on Gongyuan North Road. On the left is a stone wall carved with the school name and a sliding gate; the tall stone pillar in the middle reads \"National Tainan Second Senior High School\" from top to bottom; on the right is the guard house, whose LED board shows school news. Walk in and head north along the tree-lined driveway.", "f": "Founded in 1914 as Tainan Middle School under the Japanese colonial government, the first middle school in central and southern Taiwan. Renamed Tainan Prefectural Tainan First Middle School in 1922, and Taiwan Provincial Tainan Second Middle School in 1945."}, "park": {"n": "Tainan Park", "k": "Off campus", "d": "Tainan Park is right across from the main gate. Behind the red-pillared, green-tiled entrance arch are old banyan trees, and further in you will find Yan Pond and its island pavilion. Many students walk through the park on their way home.", "f": ""}, "island": {"n": "Entrance Median", "k": "Entrance", "d": "A tree-lined median runs up the middle of the driveway. Palm trees stand on the left; behind the hedge on the right is the entrance hall of Hong Dao Building. Go straight to the end and the yellow-brick wall with a mosaic is Ming-De Hall.", "f": ""}, "arch": {"n": "Strive for Perfection", "k": "School motto", "d": "A small gateway against the Gongyuan North Road wall, southwest of the fountain. It runs parallel to the wall and faces the campus, so people outside cannot see the words. Two red pillars hold up green glazed-tile eaves, and the beige plaque reads the school motto, 止於至善 \"Strive for the highest good\", from right to left.", "f": "The motto comes from The Great Learning: \"The way of great learning lies in manifesting bright virtue, in renewing the people, and in resting in the highest good.\""}, "sun": {"n": "Fountain", "k": "Red House", "d": "The fountain in the round plaza in front of the Red House. A black ring sculpture with a golden band stands in the stone pool, surrounded by brick paths, lawn and big trees. The motto gateway is to the southwest and the Red House arch is to the north.", "f": "The blog notes that in 2014, for the school's 100th anniversary, an artwork called \"Rising Sun\" was placed in front of the Red House, symbolizing a phoenix taking flight and the sun slowly rising."}, "genkan": {"n": "Red House", "k": "City monument", "d": "The old Red House entrance, just north of the fountain. Two two-story red brick buildings once stood here; after decades of wear they were rebuilt into the four-story Hong Dao Building, keeping only this south entrance. It has a huge arch with clearly cut voussoirs and an oversized keystone, three square openings above, round-arched windows at the sides, a horizontal band across the front, and a heavy projecting roof that echoes the stone base. Walk through the arch and the passage leads all the way north to the sports field.", "f": "Built mainly of brick and freely borrowing Western details, it is classed as \"red brick eclectic style\". The entrance hall has two round columns and two half columns, all in the Tuscan order."}, "passage": {"n": "Red House Passage", "k": "Hong Dao", "d": "The passage inside the Red House arch. Four white Tuscan columns stand in a row on mint-green bases, with a white arch in the middle. Beyond the arch is the red brick arcade between the two courtyards. On the right wall are a blue arched door and a notice board.", "f": ""}, "hongdao": {"n": "Hong Dao Building", "k": "Administration", "d": "The main administration building. Facing the central driveway, a wide stone staircase leads up to a two-story opening in the red brick wall. Four large white columns stand inside the entrance hall, so you only see them once you walk in. A white triangular pediment sits on the roof. The north side keeps an old grey stone base with arched windows, and inside are two courtyards divided by a red brick arcade.", "f": "After more than 70 years the two original red buildings were worn out, so in 1991 they were rebuilt into today's four-story, courtyard-style red tile building, keeping the look of the Red House."}, "waxapple": {"n": "Wax Apple Courtyard", "k": "Hong Dao", "d": "The left courtyard of Hong Dao Building. A wax apple tree four stories tall grows in the middle, its crown higher than the corridors. In fruiting season you can look up and see red wax apples.", "f": ""}, "yard2": {"n": "B1 Plaza", "k": "Hong Dao", "d": "A green plaza one level below the ground floor. Look up and you will see the red brick arcade on top of a brick retaining wall, with planters at its foot and stairs at both ends. The big tree behind the arcade is the wax apple tree. Wooden benches sit on the plaza, and two round balcony towers stand side by side on the back building.", "f": ""}, "arcade": {"n": "Red Brick Arcade", "k": "Hong Dao", "d": "A ground-floor red brick arcade linking the north and south wings, with round arches on both sides and potted plants on the roof. Go through the arches on the left to reach the wax apple courtyard; on the right, one level down, is the B1 plaza, with stairs at both ends. The Red House passage is to the south, and going north takes you out to the sports field.", "f": ""}, "oldgate": {"n": "Old Gate", "k": "History", "d": "The southeast corner of the campus is cut at an angle, and the old gate sits on that diagonal, facing the corner of Beimen Road and Gongyuan North Road. It is closed now. The outer pillars have red brick panels; the two inner pillars are cream with red brick stripes. The left plaque reads \"National Tainan Second Senior High School\" and the right one \"Tainan Middle School (Japanese era)\", each pillar topped with a lamp. Behind the gate are an old banyan tree and the old white guard room.", "f": ""}, "railway": {"n": "Old Railway", "k": "Memory", "d": "Looking out from the old gate, across Beimen Road was once the Taiwan Railway main line, and students often heard trains during class. The tracks have since moved underground. Here they are brought back: wait a while and a Tze-Chiang express or a local train may suddenly appear and then fade away.", "f": "Turn on \"Sound\" at the top right to hear the train horn."}, "auditorium": {"n": "Small Auditorium", "k": "City monument", "d": "The former lecture hall of Tainan Middle School, a Japanese-era building that is now the school's small auditorium. Layers of red brick and grey stone alternate; the front has a large triangular gable with three round-arched windows, a porch with four brick columns, and a retro arcade of arched doors and windows. The simple, generous interior is perfect for mid-sized concerts.", "f": "Designated a Tainan City monument in 1997; restoration funded by the central government began in 2010 and was completed in 2014."}, "oldhall": {"n": "Old Classroom Building", "k": "History", "d": "A single-story building by the east wall, southeast of the small auditorium, standing on its own. White walls, a pale green tiled roof with a row of small clerestory windows, a front porch on white columns, and brown shutters. On the lawn in front are a standing stone, a brick arch sculpture and a black boulder.", "f": ""}, "karesansui": {"n": "Dry Garden", "k": "Garden", "d": "A Japanese dry garden in front of the small auditorium. White gravel is raked into parallel lines, with circles raked around three moss-covered rocks. Facing the auditorium, the old classroom building is on your right by the wall.", "f": ""}, "avenue": {"n": "Central Avenue", "k": "Path", "d": "The avenue running north from the Red House passage, out through Hong Dao Building to the sports field. On your left is the brick service corner of the north wing, with green bins and carts at the door; far ahead is the colonnade of Ming-De Hall.", "f": ""}, "arts": {"n": "Arts Building", "k": "Classrooms", "d": "The arts building on the east side of the sports field. Each floor of the red brick wall has a white band, and the windows are divided by white frames. The ground floor is an arcade with columns, two brick stair towers rise from the roof, and a round glass stairwell stands at the south end.", "f": "On sports day, classes line up on the field to march in, with this building as the backdrop."}, "field": {"n": "Sports Field", "k": "Sports", "d": "A north–south running track with a lawn in the middle. Morning assemblies, sports day and PE classes all happen here. Walk to the middle of the lawn and turn around to see the whole campus.", "f": "When the blogger visited in 2016 it was still a red clay track. Bike parking is at the north end, and the basketball courts are right next to the west side."}, "banyan": {"n": "Under the Banyans", "k": "School life", "d": "A row of big banyan trees on the south side of the field. On sports day each class sets up camp here, and during big exams tents are put up for waiting parents.", "f": ""}, "mingde": {"n": "Ming-De Hall", "k": "Gym", "d": "A large gym in yellow-brown tile. It faces east across the field toward the small auditorium: a long colonnade with \"明德堂 Ming-De Hall\" above it, and the school store right behind the columns. A big mosaic relief covers the south side of the southeast tower, and stairs lead up on the tower's west side.", "f": "Ming-De Hall is the gym, and the school co-op store is here too. Opening ceremonies, parent meetings and large assemblies are held here, with a stage on the first floor and stands on the second."}, "relief": {"n": "Ming-De Hall Relief", "k": "Art", "d": "The south wall of Ming-De Hall's southeast tower carries a large mosaic relief: a swirling blue sky with a black bird at the top, a big tree in the middle, a red-roofed white house at upper right, several figures around it, and rolling waves at the bottom.", "f": ""}, "courts": {"n": "Basketball Courts", "k": "Sports", "d": "Four green basketball courts with pink surrounds and blue hoops. To the east, past a row of trees, are the stage and the sports field; floodlights stand to the south.", "f": ""}, "stage": {"n": "Stage", "k": "Sports", "d": "The stage on the west side of the field, with a red brick base, white columns and a steel truss roof. It faces the field and the Arts Building to the east. The principal and directors stand here during morning assemblies and sports day.", "f": ""}, "tennis": {"n": "Tennis & Volleyball Courts", "k": "Sports", "d": "Clay tennis courts to the north, surrounded by a high wire fence, and concrete volleyball courts to the south. A red brick path lined with trees runs along the wall north of the tennis courts.", "f": ""}, "covered": {"n": "Covered Court", "k": "Sports", "d": "A court with a roof. PE classes move here on rainy days, and it is the coolest spot on a summer afternoon.", "f": ""}, "pool": {"n": "Swimming Pool", "k": "Sports", "d": "A swimming pool with a blue roof, north of the back Ren-Ai Building; further north is the curved roof of the covered court. Whale shark murals cover the pool wall, and a long shed with a blue corrugated roof stands to the south.", "f": ""}, "pe": {"n": "PE Office", "k": "Sports", "d": "A three-story grey-white building southeast of the pool, with window grilles, a railing and steel water tanks on the roof, and a blue corrugated shelter on the west side.", "f": ""}, "renai": {"n": "Ren-Ai Building", "k": "Classrooms", "d": "Classrooms for 10th and 11th graders. White floor slabs with brick-red tiles, open corridors with railings on every floor, and blue glass sunshades along the roof edge. The north face of the front building is a grid of concrete balcony frames with air conditioners on the windows; between the two buildings is a brick courtyard with big trees.", "f": "The blog describes it as \"classrooms for first- and second-year students\"."}, "yard3": {"n": "Ren-Ai Courtyard", "k": "Ren-Ai", "d": "The courtyard between the two Ren-Ai buildings. A ring of hedges circles under the big tree, and a green metal ring sculpture stands in the middle.", "f": ""}, "ziqing": {"n": "Ziqing Pavilion", "k": "Pavilion", "d": "An octagonal pavilion in front of the front Ren-Ai Building, right outside the English and Social Studies offices. Green glazed tiles, red columns, three round steps, and a red brick plaza all around. Students often sit here between classes to chat or review vocabulary.", "f": ""}, "bridge": {"n": "Ren-Ai Bridge", "k": "Ren-Ai", "d": "A concrete frame extending south from the back Ren-Ai Building, with open corridors on each floor and a blue skylight on top. At the south end is a white stair tower with three round windows in a column and a pink-railed balcony; beyond it is the front building.", "f": ""}, "pinkwing": {"n": "English & Social Studies Offices", "k": "Ren-Ai", "d": "A small pink-tiled building next to the front Ren-Ai Building, larger at the bottom and smaller on top: the English office is on the ground floor and the Social Studies office on the set-back second floor, with a steel pergola on the roof terrace. The door has a canopy and a few steps, facing Ziqing Pavilion and the brick plaza.", "f": ""}, "deadtree": {"n": "Old Tree Trunk", "k": "Ren-Ai", "d": "An old tree trunk on the brick plaza in front of the front Ren-Ai Building, standing in an oval stone planter, with a hollow in its trunk.", "f": ""}, "kgym": {"n": "K Hall", "k": "Sports", "d": "A separate four-story red brick building west of the library, some distance away from Ziqing Pavilion, the English and Social Studies offices and the front Ren-Ai Building. The first two floors fill the whole footprint and the third and fourth floors are set back. On the left is a deep overhanging porch with glass doors and wide steps, the third-floor terrace has a green skylight canopy, and a big tree stands on the north side.", "f": ""}, "library": {"n": "Library", "k": "Study", "d": "A white four-story building. The second and third floors are wrapped in wooden horizontal louvers, \"Library\" is written on the ground floor, and 圖書館 is on the top floor. The entrance faces the brick plaza, and corridors on the first, second and third floors connect its north side to Qin Xue Building.", "f": ""}, "qinxue": {"n": "Qin Xue Building", "k": "Classrooms", "d": "A three-story pink-tiled building with a row of round-arched windows on the top floor and a columned arcade on the ground floor. The library is to the south of its west end, linked by corridors on three floors; a white round building stands at the east end, and a large brick plaza lies in front.", "f": ""}, "food": {"n": "Food Court", "k": "School life", "d": "The east end of the Qin Xue arcade, with lunch box, noodle and drink shops and tables under the arcade. The moment the lunch bell rings, this is where the first line forms.", "f": "The blog describes the food court as outside restaurants and drink shops."}, "science": {"n": "Science Building", "k": "Classrooms", "d": "The pink building just left of the main gate. The east side facing the driveway has triangular window hoods, a third-floor pergola terrace and an arched entrance; the north side facing the brick plaza has vertical piers, a crenellated parapet, two white columns at the entrance and a \"Science Building\" sign. The white dome on the roof is the planetarium.", "f": "Physics, chemistry, biology and earth science labs are all here, and the fourth floor has an AI experience classroom."}, "science2": {"n": "Science Building North Entrance", "k": "Classrooms", "d": "The Science Building seen from the brick plaza in front of Qin Xue Building: vertical piers, round-arched windows on the top floor, two white columns under the entrance canopy, and 科學館 written down the wall. The library is on your right.", "f": ""}, "heron": {"n": "Malayan Night Heron", "k": "Campus resident", "d": "A bird often seen on campus. It is not afraid of people and walks slowly across the lawn, looking for earthworms. Stop, and it will stop and look at you too.", "f": "The blogger also met one by surprise while touring the campus. It is nicknamed \"the silly big bird\", but it is actually a very focused hunter."}};
 const PLACES = [
   {id:'gate', name:'大門', kind:'入口', spot:[425,634], look:[425,600], r:10, lab:[437,11.5,622],
    desc:'公園北路上的正門。左邊是刻著校名的石牆和伸縮門，中間一根石砌大柱直寫「國立臺南第二高級中學」，右邊是傳達室，屋頂的 LED 看板會輪播學校消息。走進去往北就是林蔭車道。',
-   fact:'1914 年創校，原名「臺灣總督府臺南中學校」，是日治時期臺灣南部最早設立的中學。'},
+   fact:'1914 年（大正三年）創校，原名「臺灣總督府臺南中學校」，是日治時期臺灣中南部最早設立的中學；1922 年改名「臺南州立臺南第一中學」，1945 年改為「臺灣省立臺南第二中學」。'},
   {id:'park', name:'臺南公園', kind:'校外', spot:[425,654], look:[425,700], r:6, lab:[425,10,700],
    desc:'學校大門正對面就是臺南公園。紅柱綠瓦的入口牌樓後面是一大片老榕樹，往裡走有燕潭和湖心亭。放學後很多同學會穿過公園回家。',
    fact:''},
@@ -2062,20 +2085,20 @@ const PLACES = [
    desc:'進大門往北的車道中間有一條種滿樹的安全島，左邊一排椰子樹，右邊樹籬後面是弘道樓的白色圓柱門廊。直走到底，看到的黃磚牆和馬賽克壁畫就是明德堂。',
    fact:''},
   {id:'arch', name:'止於至善', kind:'校訓', spot:[568,597], look:[568,614], r:7, lab:[568,10,614],
-   desc:'噴泉西南邊、貼著公園北路圍牆的牌樓，跟圍牆平行，字面朝向校園，所以從校外看不到。兩根紅柱撐起綠色琉璃瓦的飛簷，中間米色匾額由右往左寫著校訓「止於至善」，下面是木條。',
+   desc:'噴泉西南邊、貼著公園北路圍牆的牌樓，跟圍牆平行，字面朝向校園，所以從校外看不到。兩根紅柱撐起綠色琉璃瓦的飛簷，中間米色匾額由右往左寫著有輝煌歷史的校訓「止於至善」，下面是木條。',
    fact:'校訓出自《大學》：大學之道，在明明德，在親民，在止於至善。'},
   {id:'sun', name:'噴泉', kind:'紅樓前', spot:[634,598], look:[603,590], r:8, lab:[603,8.5,592],
    desc:'紅樓前圓形廣場中間的噴泉。石砌圓池中央立著一個黑色圓環雕塑，上面點綴著金色，四周是紅磚步道、草地和大樹，西南邊是止於至善的矮牆，北邊是紅樓的拱門。',
-   fact:''},
+   fact:'部落格寫到，2014 年創校百年時在紅樓前設置了校園藝術品「旭日」，意喻盤旋起飛的鳳凰和冉冉向上的太陽，再現二中的百年風華。'},
   {id:'genkan', name:'紅樓', kind:'市定古蹟', spot:[575,566], look:[575,548], r:7, lab:[575,16,552],
-   desc:'噴泉正北邊的舊紅樓入口。紅磚牆上橫著灰白色的石材腰帶，一樓是石塊砌成的大拱門，拱心石特別大。這裡其實是一條穿堂：走進拱門，裡面是白色托斯坎柱和薄荷綠的牆裙，穿過白色拱門接上紅磚拱廊，一路往北走出去就是操場。',
-   fact:'屬於「紅磚折衷式樣」，入口大廳有兩根圓柱和兩根半圓壁柱，都是托斯坎柱式。'},
+   desc:'噴泉正北邊的舊紅樓入口。原本這裡是兩棟兩層樓的紅樓，久經風霜後改建成四層樓的弘道樓，只保留了南面的主入口（玄關）。入口是巨大的拱門，拱石分明、拱心石特別誇大；上方是三個方形開口，兩側收成圓拱窗，一道水平線橫跨整面，厚重外突的屋頂和一樓基座互相呼應。走進拱門是一條穿堂，一路往北可以走到操場。',
+   fact:'建築以磚材為主，自由擷取西方造型元素，歸類為「紅磚折衷式樣」。入口大廳有兩根圓柱和兩根半圓壁柱，都是托斯坎柱式。'},
   {id:'passage', name:'紅樓穿堂', kind:'弘道樓', spot:[575,536], look:[575,516], r:6, lab:[575,7,530],
    desc:'紅樓拱門裡面的穿堂。四根白色托斯坎柱一字排開，立在薄荷綠的柱腳上，中間一道白色拱門，拱門後面就是兩個天井中間的紅磚拱廊。右手邊牆上是一扇藍色拱門和公告欄。',
    fact:''},
   {id:'hongdao', name:'弘道樓', kind:'行政', spot:[452,487], look:[480,485], r:12, lab:[492,23,485],
    desc:'教學行政大樓。正面朝著中央大道：一道寬寬的石階走上去，紅磚牆面中間是一個挑高兩層的大開口，四根白色大圓柱藏在裡面的門廳，要走進去才看得到；最裡面是開著三扇圓拱窗的紅磚牆。左邊牆上直寫「弘道樓 Hong Dao Building」，屋頂上方是白色三角山牆。北面是老式的灰色石基配拱窗；裡面圍出兩個天井，中間用紅磚拱廊隔開。',
-   fact:'原本是兩棟兩層樓的紅樓，年久失修後改建成今天的四層樓大樓，外觀延續紅樓的紅磚風貌。'},
+   fact:'原本的兩棟紅樓歷經七十多年、樓板剝落，民國八十年（1991 年）改建成四層樓、四合院式的紅磁磚大樓，也就是今天的弘道樓，外觀仍延續紅樓的風貌。'},
   {id:'waxapple', name:'蓮霧樹天井', kind:'弘道樓', spot:[530,500], look:[545,480], r:10, lab:[545,24,485],
    desc:'弘道樓左邊的天井。中間長著一棵四層樓高的蓮霧樹，樹冠比旁邊的走廊還高，結果的季節抬頭就看得到紅色的蓮霧。',
    fact:''},
@@ -2092,8 +2115,8 @@ const PLACES = [
    desc:'從舊校門往外看，北門路對面以前就是台鐵縱貫線，上課時常常聽到火車經過。現在鐵路已經地下化，地面上看不到了；這裡把它找回來，站一會兒，自強號或區間車有時候會突然出現，然後遠去。',
    fact:'右上角的「聲音」打開，火車經過時會聽到鳴笛。'},
   {id:'auditorium', name:'小禮堂', kind:'市定古蹟', spot:[650,344], look:[686,318], r:10, lab:[686,21,295],
-   desc:'原臺南中學校的講堂。紅磚和灰白石材一層層交錯，正面是大三角山牆，上面開三扇圓拱窗；門廊有四根紅磚柱，後面是拱形門窗，兩側是拱形迴廊。',
-   fact:'2010 年獲中央補助開始維修，2014 年整修完成，列為市定古蹟。'},
+   desc:'原臺南中學校的講堂，日治時期留下來的老建築，現在是二中的小禮堂。紅磚和灰白石材一層層交錯，正面是大三角山牆，開三扇圓拱窗；門廊有四根紅磚柱，外面是一圈拱形門窗的迴廊，很有復古味道。裡面空間簡單大器，很適合辦中型音樂會。',
+   fact:'1997 年公告為臺南市市定古蹟；2010 年獲中央補助開始維修，2014 年整修完成。'},
   {id:'oldhall', name:'舊校舍', kind:'歷史', spot:[698,414], look:[715,372], r:9, lab:[715,11,370],
    desc:'小禮堂東南邊、靠著東側圍牆的一棟獨立平房，南北向，前廊朝西。白牆、淺綠色瓦屋頂，屋脊下一排小高窗，白柱子撐起的前廊，窗戶兩側是咖啡色百葉窗。前面草地上立著一塊長石、一座磚拱雕塑和一顆黑色巨石。',
    fact:''},
@@ -2108,13 +2131,13 @@ const PLACES = [
    fact:'運動會時，各班在操場上排隊進場，背景就是這棟樓。'},
   {id:'field', name:'運動場', kind:'運動', spot:[550,220], look:[550,120], r:30, lab:[550,10,72],
    desc:'南北向的紅色跑道，中間是草地。朝會、運動會、體育課都在這裡。走到草地中央轉一圈看看四周。',
-   fact:'北端是腳踏車停車區，西側緊鄰籃球場。'},
+   fact:'部落格 2016 年拍的時候還是紅土跑道。北端是腳踏車停車區，西側緊鄰籃球場。'},
   {id:'banyan', name:'榕樹下', kind:'生活', spot:[545,392], look:[545,404], r:9, lab:[545,12,404],
    desc:'運動場南側的一排大榕樹。運動會時各班在這裡紮營，大考期間也會搭帳篷給陪考家長休息。',
    fact:''},
   {id:'mingde', name:'明德堂', kind:'體育館', spot:[478,384], look:[446,350], r:14, lab:[400,20,330],
    desc:'黃褐色面磚的大型體育館。正面朝東，隔著操場對著小禮堂：一整排圓柱的柱廊，上方寫著「明德堂 Ming-De Hall」，合作社就在柱廊後面。東南角塔樓朝南的牆上是一大片馬賽克浮雕，有大樹、紅瓦房和人物；塔樓西邊有樓梯上去。',
-   fact:'開學典禮、家長座談、大型集會都在這裡，一樓有舞台、二樓有看台。'},
+   fact:'明德堂是一座體育館，合作社也在這裡。開學典禮、家長座談、大型集會都在這裡，一樓有舞台、二樓有看台。'},
   {id:'relief', name:'明德堂浮雕', kind:'藝術', spot:[429,420], look:[429,394], r:7, lab:[429,22,394],
    desc:'明德堂東南角塔樓朝南的牆面，一大片馬賽克浮雕：上方是藍色旋渦般的天空和一隻黑鳥，中間一棵大樹，右上是紅瓦白屋，四周有幾個人物，底下是一層層浪花。',
    fact:''},
@@ -2133,12 +2156,12 @@ const PLACES = [
   {id:'pool', name:'游泳池', kind:'運動', spot:[218,312], look:[228,262], r:8, lab:[229,10,225],
    desc:'蓋著藍色屋頂的游泳池，在仁愛樓後棟北邊，再往北就是風雨球場的弧形屋頂。圍牆畫著鯨鯊壁畫，南邊有一排藍色浪板屋頂、磚紅色外牆的長棚。',
    fact:''},
-  {id:'pe', name:'體育組辦公室', kind:'運動', spot:[236,312], look:[243,300], r:6, lab:[243,15,286],
+  {id:'pe', name:'體育科辦公室', kind:'運動', spot:[236,312], look:[243,300], r:6, lab:[243,15,286],
    desc:'游泳池東南邊的灰白色三層樓，窗戶裝著鐵窗，屋頂有一圈欄杆和幾個不鏽鋼水塔，西側搭著一片藍色浪板棚。',
    fact:''},
   {id:'renai', name:'仁愛樓', kind:'教學大樓', spot:[214,326], look:[200,365], r:16, lab:[200,23,365],
    desc:'高一、高二的教室。白色樓板配上磚紅色面磚，每層都是開放式走廊和欄杆，屋頂邊緣有藍色玻璃遮陽棚。前棟面向後棟的北面是一格一格的混凝土陽台框架，冷氣機掛在窗上；兩棟中間是紅磚中庭和大樹。',
-   fact:''},
+   fact:'部落格寫的是「1、2 年級的教室」。'},
   {id:'yard3', name:'仁愛樓中庭', kind:'仁愛樓', spot:[224,318], look:[238,328], r:7, lab:[238,8,328],
    desc:'兩棟仁愛樓之間的中庭，大樹底下圍著一圈樹籬，中間是一座綠色的金屬環形雕塑。',
    fact:''},
@@ -2154,8 +2177,8 @@ const PLACES = [
   {id:'deadtree', name:'枯木', kind:'仁愛樓', spot:[212,414], look:[200,402], r:5, lab:[200,10,402],
    desc:'仁愛樓前棟前面、紅磚廣場上的一截老樹幹，立在橢圓形的石砌花台裡，樹幹上還有一個樹洞。',
    fact:''},
-  {id:'kgym', name:'K 館', kind:'運動', spot:[224,490], look:[196,450], r:9, lab:[193,16,448],
-   desc:'紫卿亭南邊獨立的一棟紅磚樓，比英文科社會科辦公室稍大一點。一、二樓方正，三樓往後退縮；左邊是有柱子的門廊和台階，二樓露台搭著綠色遮陽棚。',
+  {id:'kgym', name:'K 館', kind:'運動', spot:[214,508], look:[196,468], r:10, lab:[189,21,466],
+   desc:'圖書館西邊獨立的一棟紅磚四層樓，和紫卿亭、英文科社會科辦公室、仁愛樓前棟都隔著一段距離。一、二樓滿版，三、四樓往後退縮；左邊是深深出挑的門廊、大玻璃門和寬台階，三樓露台搭著綠色採光棚，北側有一棵大樹。',
    fact:''},
   {id:'library', name:'圖書館', kind:'學習', spot:[284,482], look:[262,476], r:9, lab:[255,22,472],
    desc:'白色的四層樓，二、三樓外面包著一圈木色橫向格柵，一樓寫著 Library，頂樓牆上是「圖書館」三個字。正門面向紅磚廣場；北面和勤學樓之間，一、二、三樓都有走廊相連，白色樓板配藍綠色飾帶。',
@@ -2165,7 +2188,7 @@ const PLACES = [
    fact:''},
   {id:'food', name:'美食廣場', kind:'生活', spot:[357,478], look:[357,452], r:7, lab:[357,9,457],
    desc:'勤學樓一樓騎樓的東段，有便當、麵食和飲料店，騎樓下擺著桌椅。中午下課鐘一響，這裡最先排起隊。',
-   fact:''},
+   fact:'部落格介紹的美食廣場：外食餐廳和飲料店。'},
   {id:'science', name:'科學館', kind:'教學大樓', spot:[412,572], look:[388,572], r:11, lab:[330,23,573],
    desc:'就在大門左手邊的粉紅色大樓。面向入口車道的東面有三角窗楣、三樓花架露台和圓拱入口；面向紅磚廣場的北面是一排直條立面，頂上是鋸齒狀女兒牆，入口有兩根白柱和 Science Building 的招牌。屋頂白色圓頂是星象館。',
    fact:'物理、化學、生物、地科實驗室都在這棟，四樓還有 AI 人工智慧體驗教室。'},
@@ -2174,16 +2197,25 @@ const PLACES = [
    fact:''},
   {id:'heron', name:'黑冠麻鷺', kind:'校園住民', dynamic:true, r:7,
    desc:'二中校園裡常見的鳥，一點都不怕人，常在草地上慢慢走、低頭找蚯蚓。你停下來，牠也會停下來看你。',
-   fact:'被暱稱為「大笨鳥」，其實是很專心的獵人。'},
+   fact:'部落格作者逛校園時也意外遇到牠，一點都不怕生。牠被暱稱為「大笨鳥」，其實是很專心的獵人。'},
 ];
 PLACES.forEach(p=>{ if(!p.dynamic){ p.sx=X(p.spot[0]); p.sz=Z(p.spot[1]); p.lx=X(p.look[0]); p.lz=Z(p.look[1]); } });
 
 let heronLabel = null, labelsOn = true;
-function buildLabels(){
-  if(heronLabel) return;
-  PLACES.forEach(p=>{ if(p.lab) makeLabel(p.name, X(p.lab[0]), p.lab[1], Z(p.lab[2])); });
-  heronLabel = makeLabel('黑冠麻鷺',0,0,0);
+let labelsBuilt=false;
+function makeAllLabels(){
+  PLACES.forEach(p=>{ if(p.lab) makeLabel(LANG==='en'?EN[p.id].n:p.name, X(p.lab[0]), p.lab[1], Z(p.lab[2]), LANG==='both'?EN[p.id].n:null); });
+  heronLabel = makeLabel(LANG==='en'?EN.heron.n:'黑冠麻鷺',0,0,0, LANG==='both'?EN.heron.n:null);
   labels.forEach(l=>l.visible=labelsOn);
+}
+function rebuildLabels(){
+  if(!labelsBuilt) return;
+  labels.forEach(l=>{ scene.remove(l); l.material.map.dispose(); l.material.dispose(); }); labels.length=0;
+  makeAllLabels();
+}
+function buildLabels(){
+  if(labelsBuilt) return; labelsBuilt=true;
+  makeAllLabels();
   lateTextures.forEach(t=>t.userData.draw());
 }
 
@@ -2192,14 +2224,43 @@ let visited = {};
 try{ visited = JSON.parse(localStorage.getItem('tnssh-visited-v2')||'{}') || {}; }catch(e){ visited = {}; }
 function saveVisited(){ try{ localStorage.setItem('tnssh-visited-v2', JSON.stringify(visited)); }catch(e){} }
 $('total').textContent = PLACES.length;
+let LANG='both';
+try{ LANG=localStorage.getItem('tnssh-lang')||'both'; }catch(e){}
+const UI={
+  zh:{title:'南二中校園漫遊',visited:'已走訪',list:'地點清單',labels:'名牌',time:'時間',sound:'聲音',help:'玩法',listH:'想去哪裡？點一下就走過去',done:'已走訪',roam:'校園漫遊中',at:'目前位置：',lang:'語言：中文',tabP:'地點',tabO:'處室',
+      modes:['現在','早上','中午','黃昏','夜晚'],st:{cls:'上課中',after:'放學',night:'夜晚',early:'清晨'},south:'⇣ 往台南站 ',north:'⇡ 往新營 ',pass:' 通過中',tc:'自強號',rc:'區間車',
+      introK:'校園導覽',introH:'從公園北路大門，<br>走進南二中。',introP:'你會站在大門外，面向校園。走近任何一棟建築，下方就會出現它的介紹；走過的地點會蓋上章，右上的清單和小地圖都可以直接傳送過去。',
+      introL:['電腦：<kbd>W A S D</kbd> 或方向鍵走路，<kbd>Shift</kbd> 跑步；拖曳畫面轉視角，滾輪拉近拉遠','手機／平板：左下搖桿走路，在畫面上拖曳轉視角','配置照學校的校區平面圖排列，建築是簡化的模型','上學時間（08:00–17:00）才會看到很多同學；仔細找找，還有幾個意想不到的人','北門路對面的舊鐵道偶爾會有火車經過；右上角可以打開聲音、切換時間和語言','清單裡切到「處室」可以找學務處、健康中心等辦公室，點一下就走過去'],
+      go:'開始走走',src:'建築介紹參考：Potato的探險樂園〈來台南二中校園巡禮〉（2016）'},
+  en:{title:'TNSSH Campus Walk',visited:'Visited',list:'Places',labels:'Labels',time:'Time',sound:'Sound',help:'Help',listH:'Where to? Tap to walk there',done:'Visited',roam:'Exploring campus',at:'Now at: ',lang:'Lang: EN',tabP:'Places',tabO:'Offices',
+      modes:['Now','Morning','Noon','Dusk','Night'],st:{cls:'In class',after:'After school',night:'Night',early:'Early morning'},south:'⇣ To Tainan Station: ',north:'⇡ To Xinying: ',pass:' passing',tc:'Tze-Chiang Express',rc:'Local Train',
+      introK:'Campus tour',introH:'Walk into TNSSH<br>from Gongyuan North Road.',introP:'You start outside the main gate, facing the campus. Walk up to any building and its introduction appears at the bottom; each place you visit gets a stamp, and the list and mini map at the top right can take you straight there.',
+      introL:['Computer: walk with <kbd>W A S D</kbd> or arrow keys, run with <kbd>Shift</kbd>; drag to look around, scroll to zoom','Phone / tablet: walk with the joystick at bottom left, drag the screen to look around','The layout follows the official campus map; buildings are simplified models','Most students are around during school hours (08:00–17:00). Look carefully and you may meet a few surprises','Trains sometimes pass on the old railway across Beimen Road. Use the top-right buttons for sound, time of day and language','Switch the list to "Offices" to find Student Affairs, the Health Center and more, then tap to walk there'],
+      go:'Start walking',src:'Building notes based on the blog post "A Tour of Tainan Second Senior High School", Potato\'s Adventure Park (2016)'},
+};
+UI.both=Object.assign({},UI.zh,{lang:'語言：雙語',tabP:'地點 Places',tabO:'處室 Offices',title:'南二中校園漫遊',roam:'校園漫遊中 · Exploring'});
+const L=()=>UI[LANG];
+const PN=p=>LANG==='en'?EN[p.id].n:p.name;
 const listOl = $('listOl');
+let listTab='places';
+function renderOffices(){
+  listOl.innerHTML='';
+  Object.keys(DIR).forEach(id=>{ const pl=PLACES.find(q=>q.id===id); if(!pl) return;
+    DIR[id].forEach(r=>{ const li=document.createElement('li'); const b=document.createElement('button');
+      const nm = LANG==='en' ? r[2] : LANG==='both' ? `${r[1]}<small class="en">${r[2]}</small>` : r[1];
+      b.innerHTML=`<span class="no">${r[0]||'·'}</span><span>${nm}</span><span class="tag">${PN(pl)}</span>`;
+      b.addEventListener('click',()=>{ hiOffice=r[1]; currentId=null; flyTo(pl); });
+      li.appendChild(b); listOl.appendChild(li); }); });
+}
 function renderList(){
+  if(listTab==='offices'){ renderOffices(); $('count').textContent = PLACES.filter(p=>visited[p.id]).length; return; }
   listOl.innerHTML = '';
   PLACES.forEach((p,i)=>{
     const li = document.createElement('li'); if(visited[p.id]) li.className='done';
     const b = document.createElement('button');
-    b.innerHTML = `<span class="no">${String(i+1).padStart(2,'0')}</span><span>${p.name}</span><span class="tag">${visited[p.id]?'已走訪':p.kind}</span>`;
-    b.addEventListener('click',()=>flyTo(p));
+    const nm = LANG==='both' ? `${p.name}<small class="en">${EN[p.id].n}</small>` : PN(p);
+    b.innerHTML = `<span class="no">${String(i+1).padStart(2,'0')}</span><span>${nm}</span><span class="tag">${visited[p.id]?L().done:(LANG==='en'?EN[p.id].k:p.kind)}</span>`;
+    b.addEventListener('click',()=>{ hiOffice=null; flyTo(p); });
     li.appendChild(b); listOl.appendChild(li);
   });
   $('count').textContent = PLACES.filter(p=>visited[p.id]).length;
@@ -2259,7 +2320,10 @@ $('btnList').addEventListener('click',()=>setList($('list').hidden));
 $('btnLabel').addEventListener('click',()=>{ labelsOn=!labelsOn; labels.forEach(l=>l.visible=labelsOn); $('btnLabel').setAttribute('aria-pressed',labelsOn?'true':'false'); });
 $('btnHelp').addEventListener('click',()=>{ $('intro').hidden=false; });
 $('go').addEventListener('click',()=>{ $('intro').hidden=true; initAudio(); soundOn=!!audioCtx; $('btnSound').setAttribute('aria-pressed',soundOn?'true':'false'); if(audioCtx&&audioCtx.resume) audioCtx.resume(); });
-$('btnTime').addEventListener('click',()=>{ timeMode=(timeMode+1)%TIME_MODES.length; $('btnTime').textContent='時間：'+TIME_MODES[timeMode][0]; applyTime(curHour()); });
+$('btnTime').addEventListener('click',()=>{ timeMode=(timeMode+1)%TIME_MODES.length; const u=L(); $('btnTime').textContent=u.time+(LANG==='en'?': ':'：')+u.modes[timeMode]; applyTime(curHour()); });
+$('tabPlaces').addEventListener('click',()=>{ listTab='places'; $('tabPlaces').setAttribute('aria-pressed','true'); $('tabOffices').setAttribute('aria-pressed','false'); renderList(); });
+$('tabOffices').addEventListener('click',()=>{ listTab='offices'; $('tabOffices').setAttribute('aria-pressed','true'); $('tabPlaces').setAttribute('aria-pressed','false'); renderList(); });
+$('btnLang').addEventListener('click',()=>{ LANG = LANG==='both'?'en':LANG==='en'?'zh':'both'; try{ localStorage.setItem('tnssh-lang',LANG); }catch(e){} applyLang(); });
 $('btnSound').addEventListener('click',()=>{ initAudio(); if(audioCtx&&audioCtx.resume) audioCtx.resume(); soundOn=!soundOn && !!audioCtx; $('btnSound').setAttribute('aria-pressed',soundOn?'true':'false'); });
 
 /* ---------- fly to ---------- */
@@ -2350,15 +2414,44 @@ mini.addEventListener('click',e=>{
 
 /* ---------- info card ---------- */
 let currentId = null;
+function fillCard(p){
+  const e=EN[p.id], en=LANG==='en', both=LANG==='both';
+  $('cKind').textContent = en ? e.k : both ? p.kind+' · '+e.k : p.kind;
+  $('cName').innerHTML = en ? e.n : both ? p.name+' <span class="en">'+e.n+'</span>' : p.name;
+  $('cDesc').textContent = en ? e.d : p.desc;
+  const f = en ? e.f : p.fact; $('cFact').textContent = f || ''; $('cFact').hidden = !f;
+  $('cEn').hidden = !both; $('cEn').textContent = both ? e.d : '';
+  $('cEnF').hidden = !(both && e.f); $('cEnF').textContent = both ? e.f : '';
+  $('stamp').innerHTML = en ? 'TNSSH' : (p.kind.length<=4 ? p.kind.replace(/(.{2})/,'$1<br>') : '南二中');
+  const d=DIR[p.id];
+  if(d){ const hdr=LANG==='en'?'Directory':LANG==='both'?'處室・樓層 Directory':'處室・樓層';
+    $('cDir').innerHTML='<b>'+hdr+'</b>'+d.map(r=>{ const nm=LANG==='en'?r[2]:LANG==='both'?r[1]+' <i>'+r[2]+'</i>':r[1];
+      return '<div class="row'+(r[1]===hiOffice?' hi':'')+'"><span class="fl">'+(r[0]||'·')+'</span><span>'+nm+'</span></div>'; }).join('');
+    $('cDir').hidden=false; setTimeout(()=>{ const h=$('cDir').querySelector('.hi'); if(h){ const c=$('card'); c.scrollTop=h.offsetTop-c.clientHeight/2; } },60); } else { $('cDir').hidden=true; $('cDir').innerHTML=''; }
+  $('where').textContent = L().at + PN(p);
+}
+let hiOffice=null;
+function applyLang(){
+  const u=L();
+  document.documentElement.lang = LANG==='en'?'en':'zh-Hant';
+  document.querySelector('#brand h1').textContent=u.title;
+  $('visitedLbl').textContent=u.visited;
+  $('btnList').textContent=u.list; $('btnLabel').textContent=u.labels; $('btnSound').textContent=u.sound; $('btnHelp').textContent=u.help;
+  $('btnLang').textContent=u.lang;
+  $('btnTime').textContent=u.time+(LANG==='en'?': ':'：')+u.modes[timeMode];
+  document.querySelector('#list h2').textContent=u.listH; $('tabPlaces').textContent=u.tabP; $('tabOffices').textContent=u.tabO;
+  $('introK').textContent=u.introK; $('introH').innerHTML=u.introH; $('introP').textContent=u.introP;
+  $('introL').innerHTML=u.introL.map(x=>'<li>'+x+'</li>').join(''); $('go').textContent=u.go; $('introSrc').textContent=u.src;
+  renderList(); rebuildLabels();
+  const cur=PLACES.find(q=>q.id===currentId); if(cur) fillCard(cur); else $('where').textContent=u.roam;
+  applyTime(curHour());
+}
 function showPlace(p){
   if(currentId === (p&&p.id)) return;
   currentId = p ? p.id : null;
   const card = $('card');
-  if(!p){ card.classList.add('off'); $('where').textContent='校園漫遊中'; return; }
-  $('cKind').textContent = p.kind; $('cName').textContent = p.name; $('cDesc').textContent = p.desc;
-  $('cFact').textContent = p.fact || ''; $('cFact').hidden = !p.fact;
-  $('stamp').innerHTML = p.kind.length<=4 ? p.kind.replace(/(.{2})/,'$1<br>') : '南二中';
-  $('where').textContent = '目前位置：'+p.name;
+  if(!p){ card.classList.add('off'); $('where').textContent=L().roam; return; }
+  fillCard(p);
   card.classList.remove('off');
   if(!visited[p.id]){ visited[p.id]=1; saveVisited(); renderList(); }
 }
@@ -2485,7 +2578,7 @@ Promise.race([
       m.needsUpdate=true; }); });
 })();
 scene.traverse(o=>{ const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[]; ms.forEach(m=>{ if(m&&m.emissive&&m.emissiveIntensity>0&&m.emissive.getHex()!==0&&!glowMats.some(g=>g.m===m)) glowMats.push({m,base:m.emissiveIntensity}); }); });
-applyTime(curHour());
+applyLang();
 $('loading').hidden = true;
 requestAnimationFrame(step);
 })();
